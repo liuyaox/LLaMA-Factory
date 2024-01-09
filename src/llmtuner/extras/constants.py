@@ -9,6 +9,15 @@ DEFAULT_MODULE = defaultdict(str)
 
 DEFAULT_TEMPLATE = defaultdict(str)
 
+FILEEXT2TYPE = {
+    "arrow": "arrow",
+    "csv": "csv",
+    "json": "json",
+    "jsonl": "json",
+    "parquet": "parquet",
+    "txt": "text"
+}
+
 IGNORE_INDEX = -100
 
 LAYERNORM_NAMES = {"norm", "ln"}
@@ -16,6 +25,8 @@ LAYERNORM_NAMES = {"norm", "ln"}
 LOG_FILE_NAME = "trainer_log.jsonl"
 
 METHODS = ["full", "freeze", "lora"]
+
+PEFT_METHODS = ["lora"]
 
 SUBJECTS = ["Average", "STEM", "Social Sciences", "Humanities", "Other"]
 
@@ -28,6 +39,10 @@ TRAINING_STAGES = {
     "DPO": "dpo",
     "Pre-Training": "pt"
 }
+
+V_HEAD_WEIGHTS_NAME = "value_head.bin"
+
+V_HEAD_SAFE_WEIGHTS_NAME = "value_head.safetensors"
 
 class DownloadSource(str, Enum):
     DEFAULT = "hf"
@@ -384,7 +399,8 @@ register_model_group(
             DownloadSource.MODELSCOPE: "AI-ModelScope/Mistral-7B-Instruct-v0.1"
         },
         "Mistral-7B-v0.2-Chat": {
-            DownloadSource.DEFAULT: "mistralai/Mistral-7B-Instruct-v0.2"
+            DownloadSource.DEFAULT: "mistralai/Mistral-7B-Instruct-v0.2",
+            DownloadSource.MODELSCOPE: "AI-ModelScope/Mistral-7B-Instruct-v0.2"
         }
     },
     template="mistral"
@@ -394,10 +410,12 @@ register_model_group(
 register_model_group(
     models={
         "Mixtral-8x7B": {
-            DownloadSource.DEFAULT: "mistralai/Mixtral-8x7B-v0.1"
+            DownloadSource.DEFAULT: "mistralai/Mixtral-8x7B-v0.1",
+            DownloadSource.MODELSCOPE: "AI-ModelScope/Mixtral-8x7B-v0.1"
         },
         "Mixtral-8x7B-Chat": {
-            DownloadSource.DEFAULT: "mistralai/Mixtral-8x7B-Instruct-v0.1"
+            DownloadSource.DEFAULT: "mistralai/Mixtral-8x7B-Instruct-v0.1",
+            DownloadSource.MODELSCOPE: "AI-ModelScope/Mixtral-8x7B-Instruct-v0.1"
         }
     },
     template="mistral"
@@ -417,9 +435,13 @@ register_model_group(
 
 register_model_group(
     models={
-        "Phi1.5-1.3B": {
+        "Phi-1.5-1.3B": {
             DownloadSource.DEFAULT: "microsoft/phi-1_5",
             DownloadSource.MODELSCOPE: "allspace/PHI_1-5"
+        },
+        "Phi-2-2.7B": {
+            DownloadSource.DEFAULT: "microsoft/phi-2",
+            DownloadSource.MODELSCOPE: "AI-ModelScope/phi-2"
         }
     },
     module="Wqkv"
@@ -556,6 +578,10 @@ register_model_group(
             DownloadSource.DEFAULT: "xverse/XVERSE-65B",
             DownloadSource.MODELSCOPE: "xverse/XVERSE-65B"
         },
+        "XVERSE-65B-2": {
+            DownloadSource.DEFAULT: "xverse/XVERSE-65B-2",
+            DownloadSource.MODELSCOPE: "xverse/XVERSE-65B-2"
+        },
         "XVERSE-7B-Chat": {
             DownloadSource.DEFAULT: "xverse/XVERSE-7B-Chat",
             DownloadSource.MODELSCOPE: "xverse/XVERSE-7B-Chat"
@@ -563,6 +589,10 @@ register_model_group(
         "XVERSE-13B-Chat": {
             DownloadSource.DEFAULT: "xverse/XVERSE-13B-Chat",
             DownloadSource.MODELSCOPE: "xverse/XVERSE-13B-Chat"
+        },
+        "XVERSE-65B-Chat": {
+            DownloadSource.DEFAULT: "xverse/XVERSE-65B-Chat",
+            DownloadSource.MODELSCOPE: "xverse/XVERSE-65B-Chat"
         }
     },
     template="xverse"
@@ -612,6 +642,25 @@ register_model_group(
         }
     },
     template="yi"
+)
+
+
+register_model_group(
+    models={
+        "Yuan2-2B-Chat": {
+            DownloadSource.DEFAULT: "IEITYuan/Yuan2-2B-hf",
+            DownloadSource.MODELSCOPE: "YuanLLM/Yuan2.0-2B-hf"
+        },
+        "Yuan2-51B-Chat": {
+            DownloadSource.DEFAULT: "IEITYuan/Yuan2-51B-hf",
+            DownloadSource.MODELSCOPE: "YuanLLM/Yuan2.0-51B-hf"
+        },
+        "Yuan2-102B-Chat": {
+            DownloadSource.DEFAULT: "IEITYuan/Yuan2-102B-hf",
+            DownloadSource.MODELSCOPE: "YuanLLM/Yuan2.0-102B-hf"
+        }
+    },
+    template="yuan"
 )
 
 

@@ -2,8 +2,9 @@
 
 ```json
 "数据集名称": {
-  "hf_hub_url": "Hugging Face 的仓库地址（若指定，则忽略下列三个参数）",
-  "script_url": "包含数据加载脚本的本地文件夹名称（若指定，则忽略下列两个参数）",
+  "hf_hub_url": "Hugging Face 的数据集仓库地址（若指定，则忽略 script_url 和 file_name）",
+  "ms_hub_url": "ModelScope 的数据集仓库地址（若指定，则忽略 script_url 和 file_name）",
+  "script_url": "包含数据加载脚本的本地文件夹名称（若指定，则忽略 file_name）",
   "file_name": "该目录下数据集文件的名称（若上述参数未指定，则此项必需）",
   "file_sha1": "数据集文件的 SHA-1 哈希值（可选，留空不影响训练）",
   "subset": "数据集子集的名称（可选，默认：None）",
@@ -17,7 +18,8 @@
     "history": "数据集代表历史对话的表头名称（默认：None，用于 alpaca 格式）",
     "messages": "数据集代表消息列表的表头名称（默认：conversations，用于 sharegpt 格式）",
     "role": "消息中代表发送者身份的键名（默认：from，用于 sharegpt 格式）",
-    "content": "消息中代表文本内容的键名（默认：value，用于 sharegpt 格式）"
+    "content": "消息中代表文本内容的键名（默认：value，用于 sharegpt 格式）",
+    "system": "数据集代表系统提示的表头名称（默认：None，用于两种格式）"
   }
 }
 ```
@@ -32,6 +34,7 @@
     "instruction": "用户指令（必填）",
     "input": "用户输入（选填）",
     "output": "模型回答（必填）",
+    "system": "系统提示词（选填）",
     "history": [
       ["第一轮指令（选填）", "第一轮回答（选填）"],
       ["第二轮指令（选填）", "第二轮回答（选填）"]
@@ -48,6 +51,7 @@
     "prompt": "instruction",
     "query": "input",
     "response": "output",
+    "system": "system",
     "history": "history"
   }
 }
@@ -55,7 +59,7 @@
 
 其中 `prompt` 和 `response` 列应当是非空的字符串，分别代表用户指令和模型回答。`query` 列的内容将会和 `prompt` 列拼接作为模型输入。
 
-`history` 列是由多个字符串二元组构成的列表，分别代表历史消息中每轮的指令和回答。注意每轮的模型回答**均会被用于训练**。
+`system` 为模板中的系统提示词。`history` 列是由多个字符串二元组构成的列表，分别代表历史消息中每轮的指令和回答。注意每轮的模型回答**均会被用于训练**。
 
 对于预训练数据集，仅 `prompt` 列中的内容会用于模型训练。
 
@@ -86,7 +90,8 @@
         "from": "gpt",
         "value": "模型回答"
       }
-    ]
+    ],
+    "system": "系统提示词（选填）"
   }
 ]
 ```
@@ -98,7 +103,8 @@
   "columns": {
     "messages": "conversations",
     "role": "from",
-    "content": "value"
+    "content": "value",
+    "system": "system"
   }
 }
 ```

@@ -39,16 +39,6 @@
       "history": "history"
     }
   },
-  "sharegpt_zh": {
-    "file_name": "sharegpt_zh_27k.json",
-    "file_sha1": "baf766bcf3d61f1b783728c14ce695af57a86e6e",
-    "columns": {
-      "prompt": "instruction",
-      "query": "input",
-      "response": "output",
-      "history": "history"
-    }
-  },
   "lima": {
     "file_name": "lima.json",
     "file_sha1": "9db59f6b7007dc4b17529fc63379b9cd61640f37",
@@ -117,7 +107,8 @@
     "ms_hub_url": "AI-ModelScope/OpenOrca",
     "columns": {
       "prompt": "question",
-      "response": "response"
+      "response": "response",
+      "system": "system_prompt"
     }
   },
   "mathinstruct": {
@@ -149,6 +140,9 @@
   },
   "nectar_sft": {
     "hf_hub_url": "mlinmg/SFT-Nectar"
+  },
+  "deepctrl": {
+    "ms_hub_url": "deepctrl/deepctrl-sft-data"
   },
   "adgen": {
     "hf_hub_url": "HasturOfficial/adgen",
@@ -184,6 +178,7 @@
   },
   "lmsys_chat": {
     "hf_hub_url": "lmsys/lmsys-chat-1m",
+    "ms_hub_url": "AI-ModelScope/lmsys-chat-1m",
     "columns": {
       "messages": "conversation",
       "role": "role",
@@ -243,6 +238,13 @@
   "wiki_demo": {
     "file_name": "wiki_demo.txt",
     "file_sha1": "e70375e28eda542a90c68213640cc371898ce181",
+    "columns": {
+      "prompt": "text"
+    }
+  },
+  "c4_demo": {
+    "file_name": "c4_demo.json",
+    "file_sha1": "a5a0c86759732f9a5238e447fecd74f28a66cca8",
     "columns": {
       "prompt": "text"
     }

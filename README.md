@@ -6,7 +6,7 @@
 [![PyPI](https://img.shields.io/pypi/v/llmtuner)](https://pypi.org/project/llmtuner/)
 [![Downloads](https://static.pepy.tech/badge/llmtuner)](https://pypi.org/project/llmtuner/)
 [![GitHub pull request](https://img.shields.io/badge/PRs-welcome-blue)](https://github.com/hiyouga/LLaMA-Factory/pulls)
-[![Discord](https://dcbadge.vercel.app/api/server/c2EPEt5NU?compact=true&style=flat)](https://discord.gg/c2EPEt5NU)
+[![Discord](https://dcbadge.vercel.app/api/server/rKfvV9r9FK?compact=true&style=flat)](https://discord.gg/rKfvV9r9FK)
 [![Spaces](https://img.shields.io/badge/🤗-Open%20In%20Spaces-blue)](https://huggingface.co/spaces/hiyouga/LLaMA-Board)
 [![Studios](https://img.shields.io/badge/ModelScope-Open%20In%20Studios-blue)](https://modelscope.cn/studios/hiyouga/LLaMA-Board)
 
@@ -55,9 +55,11 @@ Compared to ChatGLM's [P-Tuning](https://github.com/THUDM/ChatGLM2-6B/tree/main/
 
 ## Changelog
 
+[23/12/23] We supported **[unsloth](https://github.com/unslothai/unsloth)**'s implementation to boost LoRA tuning for the LLaMA, Mistral and Yi models. Try `--use_unsloth` argument to activate unsloth patch. It achieves 1.7x speed in our benchmark, check [this page](https://github.com/hiyouga/LLaMA-Factory/wiki/Performance-comparison) for details.
+
 [23/12/12] We supported fine-tuning the latest MoE model **[Mixtral 8x7B](https://huggingface.co/mistralai/Mixtral-8x7B-v0.1)** in our framework. See hardware requirement [here](#hardware-requirement).
 
-[23/12/01] We supported downloading pre-trained models from the **[ModelScope Hub](https://modelscope.cn/models)** for Chinese mainland users. See [this tutorial](#use-modelscope-models-optional) for usage.
+[23/12/01] We supported downloading pre-trained models and datasets from the **[ModelScope Hub](https://modelscope.cn/models)** for Chinese mainland users. See [this tutorial](#use-modelscope-hub-optional) for usage.
 
 <details><summary>Full Changelog</summary>
 
@@ -67,7 +69,7 @@ Compared to ChatGLM's [P-Tuning](https://github.com/THUDM/ChatGLM2-6B/tree/main/
 
 [23/09/23] We integrated MMLU, C-Eval and CMMLU benchmarks in this repo. See [this example](#evaluation) to evaluate your models.
 
-[23/09/10] We supported using **[FlashAttention-2](https://github.com/Dao-AILab/flash-attention)** for the LLaMA models. Try `--flash_attn` argument to enable FlashAttention-2 if you are using RTX4090, A100 or H100 GPUs.
+[23/09/10] We supported **[FlashAttention-2](https://github.com/Dao-AILab/flash-attention)**. Try `--flash_attn` argument to enable FlashAttention-2 if you are using RTX4090, A100 or H100 GPUs.
 
 [23/08/12] We supported **RoPE scaling** to extend the context length of the LLaMA models. Try `--rope_scaling linear` argument in training and `--rope_scaling dynamic` argument at inference to extrapolate the position embeddings.
 
@@ -93,20 +95,22 @@ Compared to ChatGLM's [P-Tuning](https://github.com/THUDM/ChatGLM2-6B/tree/main/
 
 | Model                                                    | Model size                  | Default module    | Template  |
 | -------------------------------------------------------- | --------------------------- | ----------------- | --------- |
-| [Baichuan](https://github.com/baichuan-inc/Baichuan-13B) | 7B/13B                      | W_pack            | baichuan  |
-| [Baichuan2](https://github.com/baichuan-inc/Baichuan2)   | 7B/13B                      | W_pack            | baichuan2 |
+| [Baichuan](https://huggingface.co/baichuan-inc)          | 7B/13B                      | W_pack            | baichuan  |
+| [Baichuan2](https://huggingface.co/baichuan-inc)         | 7B/13B                      | W_pack            | baichuan2 |
 | [BLOOM](https://huggingface.co/bigscience/bloom)         | 560M/1.1B/1.7B/3B/7.1B/176B | query_key_value   | -         |
 | [BLOOMZ](https://huggingface.co/bigscience/bloomz)       | 560M/1.1B/1.7B/3B/7.1B/176B | query_key_value   | -         |
-| [ChatGLM3](https://github.com/THUDM/ChatGLM3)            | 6B                          | query_key_value   | chatglm3  |
-| [Falcon](https://huggingface.co/tiiuae/falcon-7b)        | 7B/40B/180B                 | query_key_value   | falcon    |
-| [InternLM](https://github.com/InternLM/InternLM)         | 7B/20B                      | q_proj,v_proj     | intern    |
+| [ChatGLM3](https://huggingface.co/THUDM/chatglm3-6b)     | 6B                          | query_key_value   | chatglm3  |
+| [Falcon](https://huggingface.co/tiiuae)                  | 7B/40B/180B                 | query_key_value   | falcon    |
+| [InternLM](https://huggingface.co/internlm)              | 7B/20B                      | q_proj,v_proj     | intern    |
 | [LLaMA](https://github.com/facebookresearch/llama)       | 7B/13B/33B/65B              | q_proj,v_proj     | -         |
 | [LLaMA-2](https://huggingface.co/meta-llama)             | 7B/13B/70B                  | q_proj,v_proj     | llama2    |
 | [Mistral](https://huggingface.co/mistralai)              | 7B                          | q_proj,v_proj     | mistral   |
 | [Mixtral](https://huggingface.co/mistralai)              | 8x7B                        | q_proj,v_proj     | mistral   |
-| [Phi-1.5](https://huggingface.co/microsoft/phi-1_5)      | 1.3B                        | Wqkv              | -         |
-| [Qwen](https://github.com/QwenLM/Qwen)                   | 1.8B/7B/14B/72B             | c_attn            | qwen      |
-| [XVERSE](https://github.com/xverse-ai)                   | 7B/13B/65B                  | q_proj,v_proj     | xverse    |
+| [Phi-1.5/2](https://huggingface.co/microsoft)            | 1.3B/2.7B                   | Wqkv              | -         |
+| [Qwen](https://huggingface.co/Qwen)                      | 1.8B/7B/14B/72B             | c_attn            | qwen      |
+| [XVERSE](https://huggingface.co/xverse)                  | 7B/13B/65B                  | q_proj,v_proj     | xverse    |
+| [Yi](https://huggingface.co/01-ai)                       | 6B/34B                      | q_proj,v_proj     | yi        |
+| [Yuan](https://huggingface.co/IEITYuan)                  | 2B/51B/102B                 | q_proj,v_proj     | yuan      |
 
 > [!NOTE]
 > **Default module** is used for the `--lora_target` argument, you can use `--lora_target all` to specify all the available modules.
@@ -126,7 +130,7 @@ Please refer to [constants.py](src/llmtuner/extras/constants.py) for a full list
 | DPO Training           | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 > [!NOTE]
-> Use `--quantization_bit 4/8` argument to enable QLoRA.
+> Use `--quantization_bit 4` argument to enable QLoRA.
 
 ## Provided Datasets
 
@@ -170,6 +174,7 @@ Please refer to [constants.py](src/llmtuner/extras/constants.py) for a full list
 - [Web QA (zh)](https://huggingface.co/datasets/suolyer/webqa)
 - [WebNovel (zh)](https://huggingface.co/datasets/zxbsmk/webnovel_cn)
 - [Nectar (en)](https://huggingface.co/datasets/berkeley-nest/Nectar)
+- [deepctrl (en&zh)](https://www.modelscope.cn/datasets/deepctrl/deepctrl-sft-data)
 - [Ad Gen (zh)](https://huggingface.co/datasets/HasturOfficial/adgen)
 - [ShareGPT Hyperfiltered (en)](https://huggingface.co/datasets/totally-not-an-llm/sharegpt-hyperfiltered-3k)
 - [ShareGPT4 (en&zh)](https://huggingface.co/datasets/shibing624/sharegpt_gpt4)
@@ -211,7 +216,7 @@ huggingface-cli login
 
 | Method | Bits |   7B  |  13B  |  30B  |   65B  |   8x7B |
 | ------ | ---- | ----- | ----- | ----- | ------ | ------ |
-| Full   |  16  | 160GB | 320GB | 600GB | 1200GB | 1000GB |
+| Full   |  16  | 160GB | 320GB | 600GB | 1200GB |  900GB |
 | Freeze |  16  |  20GB |  40GB | 120GB |  240GB |  200GB |
 | LoRA   |  16  |  16GB |  32GB |  80GB |  160GB |  120GB |
 | QLoRA  |   8  |  10GB |  16GB |  40GB |   80GB |   80GB |
@@ -242,9 +247,9 @@ If you want to enable the quantized LoRA (QLoRA) on the Windows platform, you wi
 pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
 ```
 
-### Use ModelScope Models (optional)
+### Use ModelScope Hub (optional)
 
-If you have trouble with downloading models from Hugging Face, you can use LLaMA-Factory together with ModelScope in the following manner.
+If you have trouble with downloading models and datasets from Hugging Face, you can use LLaMA-Factory together with ModelScope in the following manner.
 
 ```bash
 export USE_MODELSCOPE_HUB=1 # `set USE_MODELSCOPE_HUB=1` for Windows
@@ -258,7 +263,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     ... # arguments (same as above)
 ```
 
-LLaMA Board also supports using the models on the ModelScope Hub.
+LLaMA Board also supports using the models and datasets on the ModelScope Hub.
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 USE_MODELSCOPE_HUB=1 python src/train_web.py
@@ -274,8 +279,8 @@ CUDA_VISIBLE_DEVICES=0 USE_MODELSCOPE_HUB=1 python src/train_web.py
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage pt \
-    --model_name_or_path path_to_llama_model \
     --do_train \
+    --model_name_or_path path_to_llama_model \
     --dataset wiki_demo \
     --finetuning_type lora \
     --lora_target q_proj,v_proj \
@@ -297,8 +302,8 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
-    --model_name_or_path path_to_llama_model \
     --do_train \
+    --model_name_or_path path_to_llama_model \
     --dataset alpaca_gpt4_en \
     --template default \
     --finetuning_type lora \
@@ -321,14 +326,14 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage rm \
-    --model_name_or_path path_to_llama_model \
     --do_train \
+    --model_name_or_path path_to_llama_model \
+    --adapter_name_or_path path_to_sft_checkpoint \
+    --create_new_adapter \
     --dataset comparison_gpt4_en \
     --template default \
     --finetuning_type lora \
     --lora_target q_proj,v_proj \
-    --resume_lora_training False \
-    --checkpoint_dir path_to_sft_checkpoint \
     --output_dir path_to_rm_checkpoint \
     --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 4 \
@@ -346,14 +351,14 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage ppo \
-    --model_name_or_path path_to_llama_model \
     --do_train \
+    --model_name_or_path path_to_llama_model \
+    --adapter_name_or_path path_to_sft_checkpoint \
+    --create_new_adapter \
     --dataset alpaca_gpt4_en \
     --template default \
     --finetuning_type lora \
     --lora_target q_proj,v_proj \
-    --resume_lora_training False \
-    --checkpoint_dir path_to_sft_checkpoint \
     --reward_model path_to_rm_checkpoint \
     --output_dir path_to_ppo_checkpoint \
     --per_device_train_batch_size 2 \
@@ -377,14 +382,14 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage dpo \
-    --model_name_or_path path_to_llama_model \
     --do_train \
+    --model_name_or_path path_to_llama_model \
+    --adapter_name_or_path path_to_sft_checkpoint \
+    --create_new_adapter \
     --dataset comparison_gpt4_en \
     --template default \
     --finetuning_type lora \
     --lora_target q_proj,v_proj \
-    --resume_lora_training False \
-    --checkpoint_dir path_to_sft_checkpoint \
     --output_dir path_to_dpo_checkpoint \
     --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 4 \
@@ -452,7 +457,7 @@ deepspeed --num_gpus 8 --master_port=9901 src/train_bash.py \
     "loss_scale_window": 1000,
     "hysteresis": 2,
     "min_loss_scale": 1
-  },  
+  },
   "zero_optimization": {
     "stage": 2,
     "allgather_partitions": true,
@@ -472,23 +477,28 @@ deepspeed --num_gpus 8 --master_port=9901 src/train_bash.py \
 ```bash
 python src/export_model.py \
     --model_name_or_path path_to_llama_model \
+    --adapter_name_or_path path_to_checkpoint \
     --template default \
     --finetuning_type lora \
-    --checkpoint_dir path_to_checkpoint \
-    --export_dir path_to_export
+    --export_dir path_to_export \
+    --export_size 2 \
+    --export_legacy_format False
 ```
 
 > [!WARNING]
-> Merging LoRA weights into a GPTQ quantized model is not supported.
+> Merging LoRA weights into a quantized model is not supported.
+
+> [!TIP]
+> Use `--export_quantization_bit 4` and `--export_quantization_dataset data/c4_demo.json` to quantize the model after merging the LoRA weights.
 
 ### API Demo
 
 ```bash
 python src/api_demo.py \
     --model_name_or_path path_to_llama_model \
+    --adapter_name_or_path path_to_checkpoint \
     --template default \
-    --finetuning_type lora \
-    --checkpoint_dir path_to_checkpoint
+    --finetuning_type lora
 ```
 
 > [!TIP]
@@ -499,9 +509,9 @@ python src/api_demo.py \
 ```bash
 python src/cli_demo.py \
     --model_name_or_path path_to_llama_model \
+    --adapter_name_or_path path_to_checkpoint \
     --template default \
-    --finetuning_type lora \
-    --checkpoint_dir path_to_checkpoint
+    --finetuning_type lora
 ```
 
 ### Web Demo
@@ -509,9 +519,9 @@ python src/cli_demo.py \
 ```bash
 python src/web_demo.py \
     --model_name_or_path path_to_llama_model \
+    --adapter_name_or_path path_to_checkpoint \
     --template default \
-    --finetuning_type lora \
-    --checkpoint_dir path_to_checkpoint
+    --finetuning_type lora
 ```
 
 ### Evaluation
@@ -519,9 +529,9 @@ python src/web_demo.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/evaluate.py \
     --model_name_or_path path_to_llama_model \
-    --finetuning_type lora \
-    --checkpoint_dir path_to_checkpoint \
+    --adapter_name_or_path path_to_checkpoint \
     --template vanilla \
+    --finetuning_type lora
     --task mmlu \
     --split test \
     --lang en \
@@ -534,12 +544,12 @@ CUDA_VISIBLE_DEVICES=0 python src/evaluate.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
-    --model_name_or_path path_to_llama_model \
     --do_predict \
+    --model_name_or_path path_to_llama_model \
+    --adapter_name_or_path path_to_checkpoint \
     --dataset alpaca_gpt4_en \
     --template default \
     --finetuning_type lora \
-    --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_predict_result \
     --per_device_eval_batch_size 8 \
     --max_samples 100 \
@@ -567,7 +577,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 
 This repository is licensed under the [Apache-2.0 License](LICENSE).
 
-Please follow the model licenses to use the corresponding model weights: [Baichuan](https://huggingface.co/baichuan-inc/Baichuan-13B-Base/resolve/main/Community%20License%20for%20Baichuan-13B%20Model.pdf) / [Baichuan2](https://huggingface.co/baichuan-inc/Baichuan2-13B-Chat/resolve/main/Community%20License%20for%20Baichuan2%20Model.pdf) / [BLOOM](https://huggingface.co/spaces/bigscience/license) / [ChatGLM3](https://github.com/THUDM/ChatGLM3/blob/main/MODEL_LICENSE) / [Falcon](https://huggingface.co/tiiuae/falcon-180B/blob/main/LICENSE.txt) / [InternLM](https://github.com/InternLM/InternLM#license) / [LLaMA](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md) / [LLaMA-2](https://ai.meta.com/llama/license/) / [Mistral](LICENSE) / [Phi-1.5](https://huggingface.co/microsoft/phi-1_5/resolve/main/Research%20License.docx) / [Qwen](https://github.com/QwenLM/Qwen/blob/main/LICENSE) / [XVERSE](https://github.com/xverse-ai/XVERSE-13B/blob/main/MODEL_LICENSE.pdf)
+Please follow the model licenses to use the corresponding model weights: [Baichuan](https://huggingface.co/baichuan-inc/Baichuan-13B-Base/resolve/main/Community%20License%20for%20Baichuan-13B%20Model.pdf) / [Baichuan2](https://huggingface.co/baichuan-inc/Baichuan2-13B-Chat/resolve/main/Community%20License%20for%20Baichuan2%20Model.pdf) / [BLOOM](https://huggingface.co/spaces/bigscience/license) / [ChatGLM3](https://github.com/THUDM/ChatGLM3/blob/main/MODEL_LICENSE) / [Falcon](https://huggingface.co/tiiuae/falcon-180B/blob/main/LICENSE.txt) / [InternLM](https://github.com/InternLM/InternLM#license) / [LLaMA](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md) / [LLaMA-2](https://ai.meta.com/llama/license/) / [Mistral](LICENSE) / [Phi-1.5](https://huggingface.co/microsoft/phi-1_5/resolve/main/Research%20License.docx) / [Qwen](https://github.com/QwenLM/Qwen/blob/main/LICENSE) / [XVERSE](https://github.com/xverse-ai/XVERSE-13B/blob/main/MODEL_LICENSE.pdf) / [Yi](https://huggingface.co/01-ai/Yi-6B/blob/main/LICENSE) / [Yuan](https://github.com/IEIT-Yuan/Yuan-2.0/blob/main/LICENSE-Yuan)
 
 ## Citation
 

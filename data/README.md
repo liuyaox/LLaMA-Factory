@@ -2,8 +2,9 @@ If you are using a custom dataset, please provide your dataset definition in the
 
 ```json
 "dataset_name": {
-  "hf_hub_url": "the name of the dataset repository on the Hugging Face hub. (if specified, ignore below 3 arguments)",
-  "script_url": "the name of the directory containing a dataset loading script. (if specified, ignore below 2 arguments)",
+  "hf_hub_url": "the name of the dataset repository on the Hugging Face hub. (if specified, ignore script_url and file_name)",
+  "ms_hub_url": "the name of the dataset repository on the ModelScope hub. (if specified, ignore script_url and file_name)",
+  "script_url": "the name of the directory containing a dataset loading script. (if specified, ignore file_name)",
   "file_name": "the name of the dataset file in this directory. (required if above are not specified)",
   "file_sha1": "the SHA-1 hash value of the dataset file. (optional, does not affect training)",
   "subset": "the name of the subset. (optional, default: None)",
@@ -17,7 +18,8 @@ If you are using a custom dataset, please provide your dataset definition in the
     "history": "the column name in the dataset containing the histories. (default: None, for alpaca)",
     "messages": "the column name in the dataset containing the messages. (default: conversations, for sharegpt)",
     "role": "the key in the message represents the identity. (default: from, for sharegpt)",
-    "content": "the key in the message represents the content. (default: value, for sharegpt)"
+    "content": "the key in the message represents the content. (default: value, for sharegpt)",
+    "system": "the column name in the dataset containing the system prompts. (default: None, for both)"
   }
 }
 ```
@@ -32,6 +34,7 @@ Currently we support dataset in **alpaca** or **sharegpt** format, the dataset i
     "instruction": "user instruction (required)",
     "input": "user input (optional)",
     "output": "model response (required)",
+    "system": "system prompt (optional)",
     "history": [
       ["user instruction in the first round (optional)", "model response in the first round (optional)"],
       ["user instruction in the second round (optional)", "model response in the second round (optional)"]
@@ -48,6 +51,7 @@ Regarding the above dataset, the `columns` in `dataset_info.json` should be:
     "prompt": "instruction",
     "query": "input",
     "response": "output",
+    "system": "system",
     "history": "history"
   }
 }
@@ -55,7 +59,7 @@ Regarding the above dataset, the `columns` in `dataset_info.json` should be:
 
 where the `prompt` and `response` columns should contain non-empty values, represent instruction and response respectively. The `query` column will be concatenated with the `prompt` column and used as input for the model.
 
-The `history` column is a list consisting string tuples representing query-response pairs in history. Note that the responses **in each round will be used for training**.
+The `system` column will be used as the system prompt in the template. The `history` column is a list consisting string tuples representing query-response pairs in history. Note that the responses **in each round will be used for training**.
 
 For the pre-training datasets, only the `prompt` column will be used for training.
 
@@ -86,7 +90,8 @@ The dataset in sharegpt format should follow the below format:
         "from": "gpt",
         "value": "model response"
       }
-    ]
+    ],
+    "system": "system prompt (optional)"
   }
 ]
 ```
@@ -98,7 +103,8 @@ Regarding the above dataset, the `columns` in `dataset_info.json` should be:
   "columns": {
     "messages": "conversations",
     "role": "from",
-    "content": "value"
+    "content": "value",
+    "system": "system"
   }
 }
 ```

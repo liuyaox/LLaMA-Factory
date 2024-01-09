@@ -30,7 +30,6 @@ class ChatModel:
         self.tokenizer.padding_side = "left" if self.can_generate else "right"
         self.model = dispatch_model(self.model)
         self.template = get_template_and_fix_tokenizer(data_args.template, self.tokenizer)
-        self.system_prompt = data_args.system_prompt
 
     def _process_args(
         self,
@@ -39,7 +38,6 @@ class ChatModel:
         system: Optional[str] = None,
         **input_kwargs
     ) -> Tuple[Dict[str, Any], int]:
-        system = system or self.system_prompt
         prompt, _ = self.template.encode_oneturn(
             tokenizer=self.tokenizer, query=query, resp="", history=history, system=system
         )
@@ -154,7 +152,6 @@ class ChatModel:
             padding=True,
             truncation=True,
             max_length=max_length or getattr(self.model.config, "max_position_embeddings", 1024),
-            pad_to_multiple_of=8,
             return_tensors="pt",
             **kwargs
         ).to(device)
