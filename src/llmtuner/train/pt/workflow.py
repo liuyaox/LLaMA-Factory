@@ -1,17 +1,20 @@
 # Inspired by: https://github.com/huggingface/transformers/blob/v4.34.1/examples/pytorch/language-modeling/run_clm.py
 
 import math
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING, List, Optional
+
 from transformers import DataCollatorForLanguageModeling, Trainer
 
-from llmtuner.data import get_dataset, preprocess_dataset, split_dataset
-from llmtuner.extras.ploting import plot_loss
-from llmtuner.model import load_model_and_tokenizer
-from llmtuner.train.utils import create_modelcard_and_push
+from ...data import get_dataset, split_dataset
+from ...extras.ploting import plot_loss
+from ...model import load_model, load_tokenizer
+from ...train.utils import create_modelcard_and_push
+
 
 if TYPE_CHECKING:
     from transformers import Seq2SeqTrainingArguments, TrainerCallback
-    from llmtuner.hparams import ModelArguments, DataArguments, FinetuningArguments
+
+    from ...hparams import DataArguments, FinetuningArguments, ModelArguments
 
 
 def run_pt(
@@ -19,11 +22,11 @@ def run_pt(
     data_args: "DataArguments",
     training_args: "Seq2SeqTrainingArguments",
     finetuning_args: "FinetuningArguments",
-    callbacks: Optional[List["TrainerCallback"]] = None
+    callbacks: Optional[List["TrainerCallback"]] = None,
 ):
-    dataset = get_dataset(model_args, data_args)
-    model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args, training_args.do_train)
-    dataset = preprocess_dataset(dataset, tokenizer, data_args, training_args, stage="pt")
+    tokenizer = load_tokenizer(model_args)
+    dataset = get_dataset(tokenizer, model_args, data_args, training_args, stage="pt")
+    model = load_model(tokenizer, model_args, finetuning_args, training_args.do_train)
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
     # Initialize our Trainer
@@ -33,7 +36,7 @@ def run_pt(
         tokenizer=tokenizer,
         data_collator=data_collator,
         callbacks=callbacks,
-        **split_dataset(dataset, data_args, training_args)
+        **split_dataset(dataset, data_args, training_args),
     )
 
     # Training

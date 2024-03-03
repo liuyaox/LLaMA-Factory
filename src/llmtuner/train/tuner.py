@@ -1,15 +1,18 @@
-import torch
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+import torch
 from transformers import PreTrainedModel
 
-from llmtuner.extras.callbacks import LogCallback
-from llmtuner.extras.logging import get_logger
-from llmtuner.model import get_train_args, get_infer_args, load_model_and_tokenizer
-from llmtuner.train.pt import run_pt
-from llmtuner.train.sft import run_sft
-from llmtuner.train.rm import run_rm
-from llmtuner.train.ppo import run_ppo
-from llmtuner.train.dpo import run_dpo
+from ..extras.callbacks import LogCallback
+from ..extras.logging import get_logger
+from ..hparams import get_infer_args, get_train_args
+from ..model import load_model_and_tokenizer
+from .dpo import run_dpo
+from .ppo import run_ppo
+from .pt import run_pt
+from .rm import run_rm
+from .sft import run_sft
+
 
 if TYPE_CHECKING:
     from transformers import TrainerCallback
@@ -39,6 +42,9 @@ def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: Optional[List["Tra
 def export_model(args: Optional[Dict[str, Any]] = None):
     model_args, _, finetuning_args, _ = get_infer_args(args)
 
+    if model_args.export_dir is None:
+        raise ValueError("Please specify `export_dir`.")
+
     if model_args.adapter_name_or_path is not None and model_args.export_quantization_bit is not None:
         raise ValueError("Please merge adapters before quantizing the model.")
 
@@ -50,24 +56,34 @@ def export_model(args: Optional[Dict[str, Any]] = None):
     if not isinstance(model, PreTrainedModel):
         raise ValueError("The model is not a `PreTrainedModel`, export aborted.")
 
-    model.config.use_cache = True
-    if getattr(model.config, "torch_dtype", None) == "bfloat16":
-        model = model.to(torch.bfloat16).to("cpu")
+    if getattr(model, "quantization_method", None):
+        model = model.to("cpu")
+    elif hasattr(model.config, "torch_dtype"):
+        model = model.to(getattr(model.config, "torch_dtype")).to("cpu")
     else:
         model = model.to(torch.float16).to("cpu")
-        setattr(model.config, "torch_dtype", "float16")
+        setattr(model.config, "torch_dtype", torch.float16)
 
     model.save_pretrained(
         save_directory=model_args.export_dir,
         max_shard_size="{}GB".format(model_args.export_size),
-        safe_serialization=(not model_args.export_legacy_format)
+        safe_serialization=(not model_args.export_legacy_format),
     )
+    if model_args.export_hub_model_id is not None:
+        model.push_to_hub(
+            model_args.export_hub_model_id,
+            token=model_args.hf_hub_token,
+            max_shard_size="{}GB".format(model_args.export_size),
+            safe_serialization=(not model_args.export_legacy_format),
+        )
 
     try:
-        tokenizer.padding_side = "left" # restore padding side
+        tokenizer.padding_side = "left"  # restore padding side
         tokenizer.init_kwargs["padding_side"] = "left"
         tokenizer.save_pretrained(model_args.export_dir)
-    except:
+        if model_args.export_hub_model_id is not None:
+            tokenizer.push_to_hub(model_args.export_hub_model_id, token=model_args.hf_hub_token)
+    except Exception:
         logger.warning("Cannot save tokenizer, please copy the files manually.")
 
 

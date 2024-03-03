@@ -1,17 +1,17 @@
-import gradio as gr
-from gradio.components import Component # cannot use TYPE_CHECKING here
 from typing import Any, Dict, Generator, Optional
 
-from llmtuner.webui.chatter import WebChatModel
-from llmtuner.webui.common import get_model_path, list_dataset, load_config
-from llmtuner.webui.locales import LOCALES
-from llmtuner.webui.manager import Manager
-from llmtuner.webui.runner import Runner
-from llmtuner.webui.utils import get_time
+import gradio as gr
+from gradio.components import Component  # cannot use TYPE_CHECKING here
+
+from .chatter import WebChatModel
+from .common import get_model_path, list_dataset, load_config
+from .locales import LOCALES
+from .manager import Manager
+from .runner import Runner
+from .utils import get_time
 
 
 class Engine:
-
     def __init__(self, demo_mode: Optional[bool] = False, pure_chat: Optional[bool] = False) -> None:
         self.demo_mode = demo_mode
         self.pure_chat = pure_chat
@@ -26,10 +26,7 @@ class Engine:
         user_config = load_config() if not self.demo_mode else {}
         lang = user_config.get("lang", None) or "en"
 
-        init_dict = {
-            "top.lang": {"value": lang},
-            "infer.chat_box": {"visible": self.chatter.loaded}
-        }
+        init_dict = {"top.lang": {"value": lang}, "infer.chat_box": {"visible": self.chatter.loaded}}
 
         if not self.pure_chat:
             init_dict["train.dataset"] = {"choices": list_dataset()["choices"]}
@@ -42,20 +39,24 @@ class Engine:
         yield self._form_dict(init_dict)
 
         if not self.pure_chat:
-            if self.runner.alive:
+            if self.runner.alive and not self.demo_mode:
                 yield {elem: gr.update(value=value) for elem, value in self.runner.running_data.items()}
                 if self.runner.do_train:
                     yield self._form_dict({"train.resume_btn": {"value": True}})
                 else:
                     yield self._form_dict({"eval.resume_btn": {"value": True}})
             else:
-                yield self._form_dict({
-                    "train.output_dir": {"value": "train_" + get_time()},
-                    "eval.output_dir": {"value": "eval_" + get_time()},
-                })
+                yield self._form_dict(
+                    {
+                        "train.output_dir": {"value": "train_" + get_time()},
+                        "eval.output_dir": {"value": "eval_" + get_time()},
+                    }
+                )
 
     def change_lang(self, lang: str) -> Dict[Component, Dict[str, Any]]:
         return {
             component: gr.update(**LOCALES[name][lang])
-            for elems in self.manager.all_elems.values() for name, component in elems.items() if name in LOCALES
+            for elems in self.manager.all_elems.values()
+            for name, component in elems.items()
+            if name in LOCALES
         }
