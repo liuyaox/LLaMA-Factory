@@ -374,5 +374,12 @@
       "prompt": "content"
     },
     "folder": "python"
+  },
+  "sft_roleplay_20240303": {
+    "file_name": "/data/user/ai_story/yao.liu/Dataset/SFT/Roleplay/sft_roleplay_20240303_processed.jsonl",
+    "columns": {
+      "prompt": "input",
+      "response": "output"
+    }
   }
 }

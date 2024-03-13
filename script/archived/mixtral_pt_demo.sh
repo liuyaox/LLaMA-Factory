@@ -1,0 +1,25 @@
+# 取自：https://github.com/hiyouga/LLaMA-Factory/issues/2733   不一定对
+accelerate launch src/train_bash.py \
+  --stage pt \
+  --do_train \
+  --model_name_or_path mistralai/Mixtral-8x7B-v0.1 \
+  --dataset shuffled_data \
+  --warmup_ratio 0.05 \
+  --finetuning_type lora \
+  --lora_rank 128 \
+  --lora_alpha 256 \
+  --lora_target q_proj,v_proj,k_proj,o_proj \
+  --output_dir mixtral \
+  --auto_find_batch_size \
+  --gradient_accumulation_steps 8 \
+  --lr_scheduler_type cosine \
+  --logging_steps 3 \
+  --save_steps 400 \
+  --learning_rate 5e-5 \
+  --max_length 2048 \
+  --cutoff_len 2048 \
+  --upcast_layernorm \
+  --num_train_epochs 1.0 \
+  --quantization_bit 4 \
+  --bf16 \
+  --flash_attn
