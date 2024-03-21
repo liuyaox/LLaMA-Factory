@@ -33,7 +33,7 @@ seq_len=4096
 num_machines=6
 num_processes=48
 
-RUN_GROUP=Mixtral_8x7B_Instruct_SFT_LR${learning_rate}_EPOCH${num_train_epochs}_BS${per_device_train_batch_size}_SEQ${seq_len}_PROC${num_processes}
+RUN_GROUP=Mixtral_8x7B_Instruct_V0.1_SFT_LR${learning_rate}_EPOCH${num_train_epochs}_BS${per_device_train_batch_size}_SEQ${seq_len}_PROC${num_processes}
 RUN_NAME=${RUN_GROUP}_$(date +%Y%m%d)
 RUN_DIR=$RUN_ROOT/$RUN_NAME
 

@@ -14,9 +14,9 @@ learning_rate=1e-6
 num_train_epochs=5
 seq_len=4096
 
-MODEL_PATH=$RUN_ROOT/Mistral_7B_DP16_VPPNone_ACC32_MBSZ2_GBSZ1024_SEQLEN4096_TRAIN_ITERS6000_20240223/checkpoints/npcllm_mistral7b_pt_ckpt3000_20240223
+MODEL_PATH=$RUN_ROOT/Mistral_7B_V0.1_CPT_DP16_VPPNone_ACC32_MBSZ2_GBSZ1024_SEQLEN4096_TRAIN_ITERS6000_20240223/checkpoints/npcllm_mistral7b_pt_ckpt3000_20240223
 
-RUN_GROUP=Mistral_7B_PT_SFT_LR${learning_rate}_EPOCH${num_train_epochs}_BS${per_device_train_batch_size}_SEQ${seq_len}
+RUN_GROUP=Mistral_7B_V0.1_CPT_SFT_LR${learning_rate}_EPOCH${num_train_epochs}_BS${per_device_train_batch_size}_SEQ${seq_len}
 RUN_NAME=${RUN_GROUP}_$(date +%Y%m%d)
 RUN_DIR=$RUN_ROOT/$RUN_NAME
 
