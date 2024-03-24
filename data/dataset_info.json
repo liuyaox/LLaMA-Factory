@@ -399,5 +399,29 @@
       "prompt": "input",
       "response": "output"
     }
+  },
+  "girl_friendly_15.1": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/girl_friendly/girl_friendly_15.1.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "query": "query",
+      "response": "response"
+    }
+  },
+  "girl_friendly_2.0": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/girl_friendly/girl_friendly_2.0.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "query": "query",
+      "response": "response"
+    }
+  },
+  "girl_friendly_v1_merged": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/girl_friendly/girl_friendly_v1_merged.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "query": "query",
+      "response": "response"
+    }
   }
 }

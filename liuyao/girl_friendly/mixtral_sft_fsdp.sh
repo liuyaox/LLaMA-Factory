@@ -6,10 +6,14 @@ pip config set install.trusted-host mirrors.aliyun.com
 pip install wandb
 pip install tiktoken
 pip install transformers==4.36.2  # 避免多节点保存checkpoint时的错误
+#pip install git+https://github.com/huggingface/transformers
+#cd /maindata/data/user/ai_story/yao.liu/github/transformers
+#pip install -e .
+
 
 export DEPT_HOME=/maindata/data/user/ai_story
 export LY_HOME=$DEPT_HOME/yao.liu
-export RUN_ROOT=$LY_HOME/npc_llm
+export RUN_ROOT=$LY_HOME/girl_friendly
 
 export NCCL_VERSION=2.17.1
 export NCCL_IB_HCA=mlx5
@@ -28,26 +32,32 @@ export NCCL_DEBUG=INFO
 NUM_TRAIN_EPOCHS=4
 LEARNING_RATE=5e-6
 SEQ_LEN=4096
-NUM_MACHINES=4
-NUM_PROCESSES=32
+NUM_MACHINES=2
+NUM_PROCESSES=16
 PER_DEVICE_TRAIN_BATCH_SIZE=1
 GRADIENT_ACCUMULATION_STEPS=1
-GLOBAL_BATCH_SIZE=$((PER_DEVICE_TRAIN_BATCH_SIZE * NUM_PROCESSES * GRADIENT_ACCUMULATION_STEPS))  # 1 * 32 * 1 = 32
+GLOBAL_BATCH_SIZE=$((PER_DEVICE_TRAIN_BATCH_SIZE * NUM_PROCESSES * GRADIENT_ACCUMULATION_STEPS))  # 1 * 16 * 1 = 16
 
-TOTAL_SAMPLES=1923
-VAL_RATIO=0.1         # TODO shell脚本不支持浮点计算，待修复！
-TRAIN_SAMPLES_PER_EPOCH=$((TOTAL_SAMPLES * (1 - VAL_RATIO)))              # 1个epoch的训练样本数 1923*0.9=1731
-TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))    # 1个epoch的迭代次数   1731 / 32 = 54
+DATASET="girl_friendly_2.0"
+#TOTAL_SAMPLES=1399  # 15.1
+TOTAL_SAMPLES=5816  # 2.0
+#TOTAL_SAMPLES=7215  # v1_merged
+FLAG="2.0"
 
-SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 2))     # 每个epoch保存2次
+VAL_RATIO=0.1
+TRAIN_SAMPLES_PER_EPOCH=5234  # 1259  5234  6494
+#TRAIN_SAMPLES_PER_EPOCH=$((TOTAL_SAMPLES * (1 - VAL_RATIO)))             # 1个epoch的训练样本数 5525
+TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))    # 1个epoch的迭代次数   345  406
+
+SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 1))     # 每个epoch保存1次
 EVAL_STEPS=$((TRAIN_ITERS_PER_EPOCH / 20))    # 每个epoch评估20次
 
 #MODEL_PATH=$DEPT_HOME/nlp_models/mistralai/Mixtral-8x7B-v0.1
 MODEL_PATH=$DEPT_HOME/nlp_models/mistralai/Mixtral-8x7B-Instruct-v0.1
 
-#RUN_GROUP=Mixtral_8x7B_V0.1_SFT_LR${LEARNING_RATE}_EPOCH${NUM_TRAIN_EPOCHS}_GBS${GLOBAL_BATCH_SIZE}_SEQ${SEQ_LEN}_PROC${NUM_PROCESSES}
-RUN_GROUP=Mixtral_8x7B_Instruct_V0.1_SFT_LR${LEARNING_RATE}_EPOCH${NUM_TRAIN_EPOCHS}_GBS${GLOBAL_BATCH_SIZE}_SEQ${SEQ_LEN}_PROC${NUM_PROCESSES}
-RUN_NAME=${RUN_GROUP}_$(date +%Y%m%d)
+#RUN_GROUP=Mixtral_8x7B_V0.1_SFT
+RUN_GROUP=Mixtral_8x7B_Instruct_V0.1_SFT
+RUN_NAME=${RUN_GROUP}_LR${LEARNING_RATE}_EPOCH${NUM_TRAIN_EPOCHS}_GBS${GLOBAL_BATCH_SIZE}_SEQ${SEQ_LEN}_PROC${NUM_PROCESSES}_$(date +%Y%m%d)_v-${FLAG}
 RUN_DIR=$RUN_ROOT/$RUN_NAME
 
 mkdir -p $RUN_DIR
@@ -59,9 +69,11 @@ cat $0 > $RUN_DIR/launch_script.sh
 export WANDB_API_KEY=c3e85199a4ec8fcf33fe2fcbcf55f4f7d3ea20e9
 wandb login --relogin $WANDB_API_KEY
 export WANDB_ENTITY=littlecatx
-export WANDB_PROJECT=npc_llm
+export WANDB_PROJECT=linky_girl_friendly
 export WANDB_GROUP=$RUN_GROUP
 export WANDB_NAME=$RUN_NAME
+export WANDB_WATCH=all
+
 
 ACC_CONFIG_FILE="${RUN_DIR}/accelerate_config.yaml"
 cat << EOF > $ACC_CONFIG_FILE
@@ -92,7 +104,7 @@ use_cpu: false
 EOF
 
 #cd $LY_HOME/fork/LLaMA-Factory
-cd /data/user/ai_story/David/LLaMA-Factory
+cd /maindata/data/user/ai_story/David/LLaMA-Factory
 #accelerate="/data/user/ai_story/David/miniconda/envs/storyllm/bin/accelerate"
 #${accelerate} launch --machine_rank ${RANK} \
 accelerate launch --machine_rank ${RANK} \
@@ -101,8 +113,8 @@ accelerate launch --machine_rank ${RANK} \
   --config_file=${ACC_CONFIG_FILE} \
   src/train_bash.py \
   --model_name_or_path $MODEL_PATH \
-  --dataset sft_roleplay_20240303 \
-  --template mistral \
+  --dataset ${DATASET} \
+  --template mistral_linky_preprocessed \
   --cutoff_len ${SEQ_LEN} \
   --preprocessing_num_workers 16 \
   --overwrite_cache \
