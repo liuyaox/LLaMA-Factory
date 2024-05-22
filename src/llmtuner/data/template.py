@@ -631,7 +631,7 @@ _register_template(
 )
 
 _register_template(    # 自定义模板，适用于提前用分隔符等处理好的数据 20240321
-    name="mistral_linky_preprocessed",
+    name="custom_blank",
     format_user=StringFormatter(slots=["{{content}}"]),
     format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),
     force_system=True,

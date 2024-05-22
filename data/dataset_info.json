@@ -423,5 +423,47 @@
       "query": "query",
       "response": "response"
     }
+  },
+  "Indonesian_id_15.1_2_write0413_llama3-8b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/multilingual/Indonesian_id_15.1_2_write0413_llama3-8b.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "Indonesian_id_15.1_2_write0413_seallm7b-v2.5": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/multilingual/Indonesian_id_15.1_2_write0413_seallm7b-v2.5.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "japanese_synthetic_0516_llama3-8b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_llama3-8b.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "japanese_synthetic_0516_suzume-llama3-8b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_suzume-llama3-8b.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "japanese_synthetic_0516_mixtral8x7b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_mixtral8x7b.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "japanese_synthetic_0516_evollmjp7b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_evollmjp7b.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
   }
 }
