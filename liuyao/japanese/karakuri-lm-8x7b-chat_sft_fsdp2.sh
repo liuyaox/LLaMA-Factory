@@ -1,6 +1,12 @@
 #!/bin/bash
 set -ex
 
+pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
+pip config set install.trusted-host mirrors.aliyun.com
+pip install trl==0.8.6
+pip install peft==0.10.0
+pip install transformers==4.40.0
+
 export DEPT_HOME=/maindata/data/user/ai_story
 export LY_HOME=$DEPT_HOME/yao.liu
 export RUN_ROOT=$LY_HOME/multilingual/Japanese
@@ -8,7 +14,7 @@ export RUN_ROOT=$LY_HOME/multilingual/Japanese
 export NCCL_VERSION=2.17.1
 export NCCL_IB_HCA=mlx5
 export NCCL_IB_GID_INDEX=3
-export NCCL_IB_TIMEOUT=10000
+export NCCL_IB_TIMEOUT=10000    # 若报错socket timeout之类的错，可以设置大一些（待验证）？
 export NCCL_IB_TC=136
 export NCCL_IB_SL=5
 export NCCL_IB_SPLIT_DATA_ON_QPS=1
@@ -20,11 +26,14 @@ export NCCL_DEBUG=INFO
 
 
 # -----------配置修改区------------
-MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/mistralai/Mixtral-8x7B-Instruct-v0.1
-DATASET="japanese_synthetic_0516_mixtral8x7b"
-TOTAL_SAMPLES=26481
-RUN_GROUP=Mixtral-8x7B-Instruct-v0.1_SFT
-TAG="synthetic_0516"
+MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/Japanese/karakuri-ai/karakuri-lm-8x7b-chat-v0.1
+RUN_GROUP=karakuri-lm-8x7b-chat-v0.1_SFT
+
+## 英语翻译数据
+DATASET="japanese_translate_0529_karakuri_lm8x7b_chat"
+TOTAL_SAMPLES=3513
+TAG="translate_0529"
+VAL_RATIO=0.1
 # -------------------------------
 
 
@@ -39,12 +48,11 @@ GRADIENT_ACCUMULATION_STEPS=1   # 2会OOM
 GLOBAL_BATCH_SIZE=$((NUM_PROCESSES * PER_DEVICE_TRAIN_BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))  # 16 * 1 * 1 = 16
 GLOBAL_BATCH_SIZE_STR=${NUM_PROCESSES}x${PER_DEVICE_TRAIN_BATCH_SIZE}x${GRADIENT_ACCUMULATION_STEPS}
 
-VAL_RATIO=0.05
 TRAIN_SAMPLES_PER_EPOCH=$(echo "scale=0; $TOTAL_SAMPLES * (1 - $VAL_RATIO) / 1" | bc)   # 1个epoch的训练样本数 5525
 TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))    # 1个epoch的迭代次数   345  406
 #SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 1))     # 每个epoch保存1次   当只保存1次时，直接使用save_strategy=epoch吧
 #EVAL_STEPS=$((TRAIN_ITERS_PER_EPOCH / 20))    # 每个epoch评估20次
-EVAL_STEPS=100
+EVAL_STEPS=50
 
 
 RUN_NAME=${RUN_GROUP}_SEQ${SEQ_LEN}_LR${LR}_EP${EPOCHS}_GBS${GLOBAL_BATCH_SIZE_STR}_NEFT${NEFTUNE_NOISE_ALPHA}_$(date +%Y%m%d)_${TAG}
@@ -92,17 +100,18 @@ tpu_use_sudo: false
 use_cpu: false
 EOF
 
-cd $LY_HOME/fork2/LLaMA-Factory
+
+cd $LY_HOME/fork/LLaMA-Factory
 accelerate launch --machine_rank ${RANK} \
   --main_process_ip ${MASTER_ADDR} \
   --main_process_port ${MASTER_PORT} \
   --config_file ${ACC_CONFIG_FILE} \
-  src/train_bash.py \
+  src/train.py \
   --model_name_or_path $MODEL_PATH \
   --dataset ${DATASET} \
-  --template custom_blank \
+  --template empty \
   --cutoff_len ${SEQ_LEN} \
-  --preprocessing_num_workers 12 \
+  --preprocessing_num_workers 16 \
   --overwrite_cache \
   --do_train \
   --stage sft \
@@ -114,7 +123,8 @@ accelerate launch --machine_rank ${RANK} \
   --warmup_ratio 0.03 \
   --num_train_epochs ${EPOCHS} \
   --bf16 \
-  --flash_attn \
+  --flash_attn auto \
+  --repetition_penalty 1.08 \
   --output_dir ${RUN_DIR}/checkpoints \
   --save_strategy epoch \
   --report_to wandb \

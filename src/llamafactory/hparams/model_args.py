@@ -190,7 +190,7 @@ class ModelArguments:
             raise ValueError("Unsloth does not support MLLM yet. Stay tuned.")
 
         if self.adapter_name_or_path is not None:  # support merging multiple lora weights
-            self.adapter_name_or_path = [path.strip() for path in self.adapter_name_or_path.split(",")]
+            self.adapter_name_or_path = [path.strip() for path in self.adapter_name_or_path.split(",")]   # YAO: 支持多个checkpoints
 
         if self.new_special_tokens is not None:  # support multiple special tokens
             self.new_special_tokens = [token.strip() for token in self.new_special_tokens.split(",")]

@@ -33,7 +33,7 @@ def init_adapter(
 
     Support full-parameter, freeze and LoRA training.
 
-    Note that the trainable parameters must be cast to float32.
+    Note that the trainable parameters must be cast to float32.                 TODO: 为什么？
     """
 
     if (not is_trainable) and model_args.adapter_name_or_path is None:
@@ -53,7 +53,7 @@ def init_adapter(
     if finetuning_args.finetuning_type == "full" and is_trainable:
         logger.info("Fine-tuning method: Full")
         if cast_trainable_params_to_fp32:
-            model = model.float()
+            model = model.float()               # YAO: 将模型的数据类型转化为float32，通常在使用特定精度的GPU前需要这样转化
 
         if model_args.visual_inputs and hasattr(model, "vision_tower"):  # freeze vision model
             model.vision_tower.requires_grad_(False)
@@ -118,7 +118,7 @@ def init_adapter(
         for name, param in model.named_parameters():
             if any(trainable_layer in name for trainable_layer in trainable_layers):
                 if cast_trainable_params_to_fp32:
-                    param.data = param.data.to(torch.float32)
+                    param.data = param.data.to(torch.float32)   # YAO：数据的数据类型转化为float32  TODO:为啥都是float32？
             else:
                 param.requires_grad_(False)
 
@@ -131,7 +131,7 @@ def init_adapter(
         logger.info("Fine-tuning method: {}".format("DoRA" if finetuning_args.use_dora else "LoRA"))
         adapter_to_resume = None
 
-        if model_args.adapter_name_or_path is not None:
+        if model_args.adapter_name_or_path is not None:     # TODO: 研究下Lora时，checkpoint_dir是啥
             is_mergeable = True
             if getattr(model, "quantization_method", None):  # merge lora in quantized model is unstable
                 assert len(model_args.adapter_name_or_path) == 1, "Quantized model only accepts a single adapter."
@@ -151,7 +151,7 @@ def init_adapter(
             else:
                 adapter_to_merge = model_args.adapter_name_or_path
 
-            for adapter in adapter_to_merge:
+            for adapter in adapter_to_merge:    # YAO: PeftModel依次加载model和adapter为model，以合并待合并的adapter?
                 model: "LoraModel" = PeftModel.from_pretrained(
                     model, adapter, offload_folder=model_args.offload_folder
                 )
@@ -160,6 +160,7 @@ def init_adapter(
             if len(adapter_to_merge) > 0:
                 logger.info("Merged {} adapter(s).".format(len(adapter_to_merge)))
 
+            # YAO: adapter_to_resume单拎出来(OLD: 一是在PeftModel加载它时is_trainable=True，二是加载后不必model.merge_and_unload())
             if adapter_to_resume is not None:  # resume lora training
                 if model_args.use_unsloth:
                     model = load_unsloth_peft_model(config, model_args, is_trainable=is_trainable)

@@ -70,12 +70,14 @@ def prepare_model_for_training(
         (3) add the upcasting of the lm_head in fp32
     Inspired by: https://github.com/huggingface/peft/blob/v0.7.1/src/peft/utils/other.py#L72
     """
+    # YAO: 让LayerNorm层的参数，变成fp32   默认没有(upcast_layernorm默认为False)
     if model_args.upcast_layernorm:
         logger.info("Upcasting layernorm weights in float32.")
         for name, param in model.named_parameters():
             if param.ndim == 1 and any(ln_name in name for ln_name in LAYERNORM_NAMES):
                 param.data = param.data.to(torch.float32)
 
+    # YAO: Gradient(or Activation) checkpointing   默认有?
     if not model_args.disable_gradient_checkpointing:
         if not getattr(model, "supports_gradient_checkpointing", False):
             logger.warning("Current model does not support gradient checkpointing.")
@@ -87,6 +89,7 @@ def prepare_model_for_training(
             setattr(model.config, "use_cache", False)  # turn off when gradient checkpointing is enabled
             logger.info("Gradient checkpointing enabled.")
 
+    # YAO: Upcast lm_head to fp32  (TODO: 只要不是全参数训练，lm_head就需要为fp32吗？？)
     if hasattr(model, output_layer_name) and model_args.upcast_lmhead_output:
         logger.info("Upcasting lm_head outputs in float32.")
         output_layer = getattr(model, output_layer_name)

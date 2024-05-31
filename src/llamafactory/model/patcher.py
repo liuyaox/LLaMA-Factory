@@ -43,7 +43,7 @@ def patch_config(
     init_kwargs: Dict[str, Any],
     is_trainable: bool,
 ) -> None:
-    if model_args.compute_dtype is None:  # priority: bf16 > fp16 > fp32
+    if model_args.compute_dtype is None:  # priority: bf16 > fp16 > fp32    YAO：若没指定，则使用模型config中的精度(推断出来的精度)
         model_args.compute_dtype = infer_optim_dtype(model_dtype=getattr(config, "torch_dtype", None))
 
     if is_torch_npu_available():

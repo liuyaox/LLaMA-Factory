@@ -544,5 +544,26 @@
       "prompt": "prompt",
       "response": "response"
     }
+  },
+  "japanese_synthetic_0516_karakuri-lm8x7b-chat": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_karakuri-lm8x7b-chat.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "japanese_synthetic_0530_karakuri_lm8x7b_chat": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0530_karakuri_lm8x7b_chat.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "japanese_translate_0529_karakuri_lm8x7b_chat": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_translate_0529_karakuri_lm8x7b_chat.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
   }
 }

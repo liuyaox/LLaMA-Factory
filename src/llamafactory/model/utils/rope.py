@@ -34,12 +34,13 @@ def configure_rope(config: "PretrainedConfig", model_args: "ModelArguments", is_
                 "Enlarge max model length from {} to {}.".format(current_max_length, model_args.model_max_length)
             )
             setattr(config, "max_position_embeddings", model_args.model_max_length)
+            # YAO: 若想要的最大长度 > 模型支持的最大长度，可以RoPE scaling
             scaling_factor = float(math.ceil(model_args.model_max_length / current_max_length))
         else:
             logger.warning("Input length is smaller than max length. Consider increase input length.")
             scaling_factor = 1.0
     else:
-        scaling_factor = 2.0
+        scaling_factor = 2.0        # TODO 为啥设置为2 ？？？
 
     setattr(config, "rope_scaling", {"type": model_args.rope_scaling, "factor": scaling_factor})
     logger.info(

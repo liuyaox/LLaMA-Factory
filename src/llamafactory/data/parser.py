@@ -78,7 +78,7 @@ def get_dataset_list(data_args: "DataArguments") -> List["DatasetAttr"]:
     if data_args.interleave_probs is not None:
         data_args.interleave_probs = [float(prob.strip()) for prob in data_args.interleave_probs.split(",")]
 
-    dataset_list: List[DatasetAttr] = []
+    dataset_list: List[DatasetAttr] = []        # YAO：每个数据的元信息(path/url, columns, formatting等)
     for name in dataset_names:
         if dataset_info is None:
             load_from = "ms_hub" if use_modelscope() else "hf_hub"
@@ -89,6 +89,7 @@ def get_dataset_list(data_args: "DataArguments") -> List["DatasetAttr"]:
         if name not in dataset_info:
             raise ValueError("Undefined dataset {} in {}.".format(name, DATA_CONFIG))
 
+        # YAO: 支持HF, script(可能也是HF上的数据，只不过需要额外处理下)和本地file三种形式
         has_hf_url = "hf_hub_url" in dataset_info[name]
         has_ms_url = "ms_hub_url" in dataset_info[name]
 

@@ -41,6 +41,7 @@ class Template:
     ) -> Tuple[List[int], List[int]]:
         r"""
         Returns a single pair of token ids representing prompt and response respectively.
+        OLD: YAO: 用于preprocess_unsupervised_dataset, preprocess_pairwise_dataset
         """
         encoded_pairs = self._encode(tokenizer, messages, system, tools, cutoff_len, reserved_label_len)
         prompt_ids = []
@@ -61,6 +62,7 @@ class Template:
     ) -> Sequence[Tuple[List[int], List[int]]]:
         r"""
         Returns multiple pairs of token ids representing prompts and responses respectively.
+        OLD YAO: N轮对话，返回N元素列表  用于preprocess_supervised_dataset, preprocess_packed_supervised_dataset
         """
         return self._encode(tokenizer, messages, system, tools, cutoff_len, reserved_label_len)
 
@@ -78,7 +80,7 @@ class Template:
         Turn 0: system + query        resp
         Turn t: sep + query           resp
         """
-        system = system or self.default_system
+        system = system or self.default_system      # YAO: 所有代码中只有此处有self.default_system，还是当作system的备胎
         encoded_messages = []
         for i, message in enumerate(messages):
             elements = []
@@ -88,6 +90,7 @@ class Template:
             elif i > 0 and i % 2 == 0:
                 elements += self.format_separator.apply()
 
+            # YAO: 填充Prompt模板中的{{content}}，转换bos_token等特殊token，然后拼接在一起
             if message["role"] == Role.USER.value:
                 elements += self.format_user.apply(content=message["content"], idx=str(i // 2))
             elif message["role"] == Role.ASSISTANT.value:
@@ -111,12 +114,12 @@ class Template:
         """
         token_ids = []
         for elem in elements:
-            if isinstance(elem, str):
+            if isinstance(elem, str):       # YAO：str用于一般文本，直接encode为token_id
                 if len(elem) != 0:
                     token_ids += tokenizer.encode(elem, add_special_tokens=False)
-            elif isinstance(elem, dict):
+            elif isinstance(elem, dict):    # YAO：dict用于各家的保留token(比如baichuan的{"token": "<reserved_102>"})，convert为token_id
                 token_ids += [tokenizer.convert_tokens_to_ids(elem.get("token"))]
-            elif isinstance(elem, set):
+            elif isinstance(elem, set):     # YAO：set用于通用的保留token(一般就是bos_token和eos_token)，直接取对应的token_id
                 if "bos_token" in elem and tokenizer.bos_token_id is not None:
                     token_ids += [tokenizer.bos_token_id]
                 elif "eos_token" in elem and tokenizer.eos_token_id is not None:
@@ -247,9 +250,9 @@ def _register_template(
     default_tool_formatter = ToolFormatter(tool_format="default")
     default_separator_formatter = EmptyFormatter()
     templates[name] = template_class(
-        format_user=format_user or default_user_formatter,
-        format_assistant=format_assistant or default_assistant_formatter,
-        format_system=format_system or default_user_formatter,
+        format_user=format_user or default_user_formatter,                  # YAO：若没指定，使用默认的（同empty模板）
+        format_assistant=format_assistant or default_assistant_formatter,   # YAO: 若没指定，使用默认的（同empty模板）
+        format_system=format_system or default_user_formatter,              # YAO：若没指定，使用默认的（相比empty模板，slots少1个bos_token）
         format_function=format_function or default_function_formatter,
         format_observation=format_observation or format_user or default_user_formatter,
         format_tools=format_tools or default_tool_formatter,
@@ -612,11 +615,11 @@ _register_template(
 )
 
 
-_register_template(
+_register_template(     # YAO：替换之前定义的custom_blank
     name="empty",
     format_user=StringFormatter(slots=["{{content}}"]),
     format_assistant=StringFormatter(slots=["{{content}}"]),
-    format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),
+    format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),    # YAO：相当于bos_token()与{{content}}(需要填充)拼接
     efficient_eos=True,
     force_system=True,
 )
@@ -731,13 +734,6 @@ _register_template(
 _register_template(
     name="mistral",
     format_user=StringFormatter(slots=[" [INST] {{content}} [/INST]"]),
-    format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),
-    force_system=True,
-)
-
-_register_template(    # 自定义模板，适用于提前用分隔符等处理好的数据 20240321
-    name="custom_blank",
-    format_user=StringFormatter(slots=["{{content}}"]),
     format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),
     force_system=True,
 )

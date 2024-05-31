@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 
 def run_exp(args: Optional[Dict[str, Any]] = None, callbacks: List["TrainerCallback"] = []) -> None:
-    model_args, data_args, training_args, finetuning_args, generating_args = get_train_args(args)
+    model_args, data_args, training_args, finetuning_args, generating_args = get_train_args(args)   # YAO：有些参数做了后处理
     callbacks.append(LogCallback(training_args.output_dir))
 
     if finetuning_args.stage == "pt":
@@ -68,7 +68,7 @@ def export_model(args: Optional[Dict[str, Any]] = None) -> None:
         raise ValueError("The model is not a `PreTrainedModel`, export aborted.")
 
     if getattr(model, "quantization_method", None) is None:  # cannot convert dtype of a quantized model
-        output_dtype = getattr(model.config, "torch_dtype", torch.float16)
+        output_dtype = getattr(model.config, "torch_dtype", torch.float16)  # YAO: 优先使用config中的torch_dtype，若没配置，则使用默认的float16
         setattr(model.config, "torch_dtype", output_dtype)
         model = model.to(output_dtype)
     else:

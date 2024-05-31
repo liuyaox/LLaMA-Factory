@@ -92,7 +92,7 @@ accelerate launch --machine_rank ${RANK} \
   src/train_bash.py \
   --model_name_or_path $MODEL_PATH \
   --dataset $DATASET \
-  --template custom_blank \
+  --template empty \
   --cutoff_len ${SEQ_LEN} \
   --preprocessing_num_workers 12 \
   --overwrite_cache \

@@ -5,7 +5,7 @@ pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 pip config set install.trusted-host mirrors.aliyun.com
 pip install trl==0.8.6
 pip install peft==0.10.0
-pip install transformers==4.40.0    # 4.38.2会导致checkpoint保存时卡住，2小时没反应 待验证！
+pip install transformers==4.40.0
 
 export DEPT_HOME=/maindata/data/user/ai_story
 export LY_HOME=$DEPT_HOME/yao.liu
@@ -26,11 +26,31 @@ export NCCL_DEBUG=INFO
 
 
 # -----------配置修改区------------
-MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/mistralai/Mixtral-8x7B-Instruct-v0.1
-DATASET="japanese_synthetic_0516_mixtral8x7b"
-TOTAL_SAMPLES=26481
-RUN_GROUP=Mixtral-8x7B-Instruct-v0.1_SFT
-TAG="synthetic_0516"
+MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/Japanese/karakuri-ai/karakuri-lm-8x7b-chat-v0.1
+RUN_GROUP=karakuri-lm-8x7b-chat-v0.1_SFT
+
+# 20240517
+#DATASET="japanese_synthetic_0516_karakuri-lm8x7b-chat"
+#TOTAL_SAMPLES=26481
+#TAG="synthetic_0516"
+#VAL_RATIO=0.05
+
+# 20240530
+## v2版合成数据
+DATASET="japanese_synthetic_0530_karakuri_lm8x7b_chat"
+TOTAL_SAMPLES=87474
+TAG="synthetic_0530"
+VAL_RATIO=0.05
+
+## 英语翻译数据
+#DATASET="japanese_translate_0529_karakuri_lm8x7b_chat"
+#TOTAL_SAMPLES=3513
+#TAG="translate_0529"
+#VAL_RATIO=0.1
+
+## v2版合成数据 + 英语翻译数据
+
+
 # -------------------------------
 
 
@@ -45,7 +65,6 @@ GRADIENT_ACCUMULATION_STEPS=1   # 2会OOM
 GLOBAL_BATCH_SIZE=$((NUM_PROCESSES * PER_DEVICE_TRAIN_BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))  # 16 * 1 * 1 = 16
 GLOBAL_BATCH_SIZE_STR=${NUM_PROCESSES}x${PER_DEVICE_TRAIN_BATCH_SIZE}x${GRADIENT_ACCUMULATION_STEPS}
 
-VAL_RATIO=0.05
 TRAIN_SAMPLES_PER_EPOCH=$(echo "scale=0; $TOTAL_SAMPLES * (1 - $VAL_RATIO) / 1" | bc)   # 1个epoch的训练样本数 5525
 TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))    # 1个epoch的迭代次数   345  406
 #SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 1))     # 每个epoch保存1次   当只保存1次时，直接使用save_strategy=epoch吧

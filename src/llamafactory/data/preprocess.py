@@ -46,12 +46,12 @@ def preprocess_pretrain_dataset(
         result = tokenizer(text_examples, add_special_tokens=False, max_length=data_args.cutoff_len)
     else:
         tokenized_examples = tokenizer(text_examples, add_special_tokens=False)
-        concatenated_examples = {k: list(chain(*tokenized_examples[k])) for k in tokenized_examples.keys()}
+        concatenated_examples = {k: list(chain(*tokenized_examples[k])) for k in tokenized_examples.keys()}  # YAO：合并所有样本为整个的预训练语料！不需要一条条样本了
         total_length = len(concatenated_examples[list(concatenated_examples.keys())[0]])
         block_size = data_args.cutoff_len
         total_length = (total_length // block_size) * block_size
         result = {
-            k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
+            k: [t[i: i + block_size] for i in range(0, total_length, block_size)]       # YAO: 整个预训练语料，划分为一个个chunks(长度为cutoff_len)
             for k, t in concatenated_examples.items()
         }
         if data_args.template == "gemma":
@@ -91,7 +91,7 @@ def preprocess_supervised_dataset(
             input_ids += [image_token_id] * getattr(processor, "image_seq_length")
             labels += [IGNORE_INDEX] * getattr(processor, "image_seq_length")
 
-        for turn_idx, (source_ids, target_ids) in enumerate(
+        for turn_idx, (source_ids, target_ids) in enumerate(    # YAO：一轮一轮处理，然后拼接各轮对话，所以不用再提前手动拼接了！
             template.encode_multiturn(
                 tokenizer,
                 messages,
@@ -101,7 +101,7 @@ def preprocess_supervised_dataset(
                 data_args.reserved_label_len,
             )
         ):
-            if data_args.train_on_prompt:
+            if data_args.train_on_prompt:           # YAO: train_on_prompt是说，训练时，既学query，也学response TODO 应用场景是？
                 source_mask = source_ids
             elif turn_idx != 0 and template.efficient_eos:
                 source_mask = [tokenizer.eos_token_id] + [IGNORE_INDEX] * (len(source_ids) - 1)
@@ -109,7 +109,7 @@ def preprocess_supervised_dataset(
                 source_mask = [IGNORE_INDEX] * len(source_ids)
 
             input_ids += source_ids + target_ids
-            labels += source_mask + target_ids
+            labels += source_mask + target_ids      # YAO：高效训练：所有query为IGNORED，只学response，label形如：<IGNORE><response1><IGNORE><response2>...
 
         if template.efficient_eos:
             input_ids += [tokenizer.eos_token_id]

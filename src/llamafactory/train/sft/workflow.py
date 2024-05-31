@@ -28,10 +28,13 @@ def run_sft(
     generating_args: "GeneratingArguments",
     callbacks: Optional[List["TrainerCallback"]] = None,
 ):
+    # YAO: 加载config和Tokenizer，按需修改xx_args和Module后加载Model，初始化Adapter(full/freeze/lora)，以上是pt/sft/dpo(?)，若是rm/ppo，需要修改Model
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
-    dataset = get_dataset(model_args, data_args, training_args, stage="sft", **tokenizer_module)
     model = load_model(tokenizer, model_args, finetuning_args, training_args.do_train)
+    # YAO: 加载数据，规整数据字段(prompt, query, response, history, system)和格式
+    # YAO: 按query,response,history,system(上面的prompt，丢弃上面的system)yield数据，基于template做encode_multiturn，各轮拼接为一个input_ids(高效训练方式)
+    dataset = get_dataset(model_args, data_args, training_args, stage="sft", **tokenizer_module)
 
     if training_args.predict_with_generate:
         tokenizer.padding_side = "left"  # use left-padding in generation
