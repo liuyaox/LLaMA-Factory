@@ -1,7 +1,9 @@
 import inspect
 import os
+import sys
 from typing import TYPE_CHECKING, Literal, Optional, Union
 
+import numpy as np
 from datasets import load_dataset, load_from_disk
 
 from ..extras.constants import FILEEXT2TYPE
@@ -105,9 +107,21 @@ def load_single_dataset(
     if data_args.streaming and (dataset_attr.load_from == "file"):  # faster than specifying streaming=True
         dataset = dataset.to_iterable_dataset()  # TODO: add num shards parameter
 
+    if dataset_attr.num_samples is not None and not data_args.streaming:
+        target_num = dataset_attr.num_samples
+        indexes = np.random.permutation(len(dataset))[:target_num]
+        target_num -= len(indexes)
+        if target_num > 0:
+            expand_indexes = np.random.choice(len(dataset), target_num)
+            indexes = np.concatenate((indexes, expand_indexes), axis=0)
+
+        assert len(indexes) == dataset_attr.num_samples, "Sample num mismatched."
+        dataset = dataset.select(indexes)
+        logger.info("Sampled {} examples from dataset {}.".format(dataset_attr.num_samples, dataset_attr))
+
     if data_args.max_samples is not None:  # truncate dataset
-        num_samples = min(data_args.max_samples, len(dataset))
-        dataset = dataset.select(range(num_samples))
+        indexes = np.random.permutation(len(dataset))[: data_args.max_samples]
+        dataset = dataset.select(indexes)
 
     return align_dataset(dataset, dataset_attr, data_args)
 
@@ -167,12 +181,15 @@ def get_dataset(
                 logger.info("Tokenized dataset saved at {}.".format(data_args.tokenized_path))
                 logger.info("Please restart the training with `--tokenized_path {}`.".format(data_args.tokenized_path))
 
-            exit(0)
+            sys.exit(0)
 
         if training_args.should_log:
             try:
                 print_function(next(iter(dataset)))
             except StopIteration:
-                raise RuntimeError("Cannot find valid samples, check `data/README.md` for the data format.")
+                if stage == "pt":
+                    raise RuntimeError("Cannot find sufficient samples, consider increasing dataset size.")
+                else:
+                    raise RuntimeError("Cannot find valid samples, check `data/README.md` for the data format.")
 
         return dataset
