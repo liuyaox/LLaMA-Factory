@@ -39,6 +39,7 @@ def preprocess_supervised_dataset(
         if processor is not None and not hasattr(processor, "image_seq_length"):  # llava-like models
             examples["prompt"][i][0]["content"] = template.image_token + examples["prompt"][i][0]["content"]
 
+        # YAO: prompt和response组装为一个完整对话session  详见src/llamafactory/data/aligner.py
         messages = examples["prompt"][i] + examples["response"][i]
         input_ids, labels = [], []
 
@@ -57,7 +58,7 @@ def preprocess_supervised_dataset(
                 data_args.reserved_label_len,
             )
         ):
-            if data_args.train_on_prompt:           # YAO: train_on_prompt是说，训练时，既学query，也学response TODO 应用场景是？
+            if data_args.train_on_prompt:           # YAO: train_on_prompt是说，训练时，既学prompt，也学response TODO 应用场景是？
                 source_mask = source_ids
             elif turn_idx != 0 and template.efficient_eos:
                 source_mask = [tokenizer.eos_token_id] + [IGNORE_INDEX] * (len(source_ids) - 1)
@@ -65,7 +66,7 @@ def preprocess_supervised_dataset(
                 source_mask = [IGNORE_INDEX] * len(source_ids)
 
             input_ids += source_ids + target_ids
-            labels += source_mask + target_ids      # YAO：高效训练：所有query为IGNORED，只学response，label形如：<IGNORE><response1><IGNORE><response2>...
+            labels += source_mask + target_ids      # YAO：高效训练：所有prompt为IGNORED，只学response，label形如：<IGNORE><response1><IGNORE><response2>...
 
         if template.efficient_eos:
             input_ids += [tokenizer.eos_token_id]

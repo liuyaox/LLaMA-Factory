@@ -121,7 +121,7 @@ def convert_sharegpt(
                 logger.warning("Invalid role tag in {}.".format(messages))
                 broken_data = True
 
-            aligned_messages.append(
+            aligned_messages.append(    # YAO: 统一后的标准格式，就是role和content
                 {"role": tag_mapping[message[dataset_attr.role_tag]], "content": message[dataset_attr.content_tag]}
             )
 
@@ -157,7 +157,7 @@ def convert_sharegpt(
                 {"role": tag_mapping[chosen[dataset_attr.role_tag]], "content": chosen[dataset_attr.content_tag]},
                 {"role": tag_mapping[rejected[dataset_attr.role_tag]], "content": rejected[dataset_attr.content_tag]},
             ]
-        else:  # normal example
+        else:  # normal example   YAO: prompt是history对话和当前request，response是最后1句AI回复
             prompt = aligned_messages[:-1]
             response = aligned_messages[-1:]
 

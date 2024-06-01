@@ -83,7 +83,7 @@ class Template:
         """
         system = system or self.default_system      # YAO: 所有代码中只有此处有self.default_system，还是当作system的备胎
         encoded_messages = []
-        for i, message in enumerate(messages):
+        for i, message in enumerate(messages):      # YAO: message是一个对话，messages是一个对话session
             elements = []
             if i == 0 and (system or tools or self.force_system):
                 tool_text = self.format_tools.apply(content=tools)[0] if tools else ""
@@ -91,7 +91,7 @@ class Template:
             elif i > 0 and i % 2 == 0:
                 elements += self.format_separator.apply()
 
-            # YAO: 填充Prompt模板中的{{content}}，转换bos_token等特殊token，然后拼接在一起
+            # YAO: 填充Prompt模板中的{{content}}，转换bos_token等通用和自家的特殊token，每个对话依次存在1个列表里
             if message["role"] == Role.USER.value:
                 elements += self.format_user.apply(content=message["content"], idx=str(i // 2))
             elif message["role"] == Role.ASSISTANT.value:
@@ -388,6 +388,8 @@ def get_template_and_fix_tokenizer(
     return template
 
 
+# YAO: 以下模板中，user对话模板是[user_prefix]+[user_content]+[user_postfix]+[ai_prefix]，注意最后有个[ai_prefix]，又叫generation_prompt
+
 _register_template(
     name="alpaca",
     format_user=StringFormatter(slots=["### Instruction:\n{{content}}\n\n### Response:\n"]),
@@ -627,7 +629,7 @@ _register_template(     # YAO：替换之前定义的custom_blank
     name="empty",
     format_user=StringFormatter(slots=["{{content}}"]),
     format_assistant=StringFormatter(slots=["{{content}}"]),
-    format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),    # YAO：相当于bos_token()与{{content}}(需要填充)拼接
+    format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),    # YAO：相当于bos_token(需要转化为id)与{{content}}(需要填充)拼接
     efficient_eos=True,
     force_system=True,
 )
