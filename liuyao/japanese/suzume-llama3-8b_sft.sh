@@ -106,7 +106,7 @@ accelerate launch --machine_rank ${RANK} \
   --warmup_ratio 0.03 \
   --num_train_epochs ${EPOCHS} \
   --bf16 \
-  --flash_attn \
+  --flash_attn auto \
   --output_dir ${RUN_DIR}/checkpoints \
   --save_strategy epoch \
   --report_to wandb \

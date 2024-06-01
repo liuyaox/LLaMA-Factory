@@ -41,13 +41,15 @@ def convert_alpaca(
     """
     outputs = {"prompt": [], "response": [], "system": [], "tools": [], "images": []}
     convert_images = partial(_convert_images, dataset_attr=dataset_attr, data_args=data_args)
-    for i in range(len(examples[dataset_attr.prompt])):
+    for i in range(len(examples[dataset_attr.prompt])):     # YAO: 遍历batch，取每个样本
         prompt = []
+        # YAO：数据注册里，若有history字段，则依次取出每轮对话(注意1：每轮对话都是先user后assistant的二元列表；注意2：直接是对话内容，没有role,content等字段)
         if dataset_attr.history and isinstance(examples[dataset_attr.history][i], list):
             for old_prompt, old_response in examples[dataset_attr.history][i]:
                 prompt.append({"role": Role.USER.value, "content": old_prompt})
                 prompt.append({"role": Role.ASSISTANT.value, "content": old_response})
 
+        # YAO：数据注册里，prompt(若有)和query(若有)通过\n拼接在一起，当作user的content
         content = []
         if dataset_attr.prompt and examples[dataset_attr.prompt][i]:
             content.append(examples[dataset_attr.prompt][i])
@@ -79,7 +81,7 @@ def convert_alpaca(
 
         outputs["prompt"].append(prompt)
         outputs["response"].append(response)
-        outputs["system"].append(examples[dataset_attr.system][i] if dataset_attr.system else "")
+        outputs["system"].append(examples[dataset_attr.system][i] if dataset_attr.system else "")   # YAO：system内容就取自system字段，没别的地方
         outputs["tools"].append(examples[dataset_attr.tools][i] if dataset_attr.tools else "")
         outputs["images"].append(convert_images(examples[dataset_attr.images][i]) if dataset_attr.images else [])
 
@@ -101,14 +103,16 @@ def convert_sharegpt(
         dataset_attr.function_tag: Role.FUNCTION.value,
         dataset_attr.system_tag: Role.SYSTEM.value,
     }
-    odd_tags = (dataset_attr.user_tag, dataset_attr.observation_tag)
-    even_tags = (dataset_attr.assistant_tag, dataset_attr.function_tag)
+    odd_tags = (dataset_attr.user_tag, dataset_attr.observation_tag)     # YAO：只能出现在奇数序号的role: user, observation
+    even_tags = (dataset_attr.assistant_tag, dataset_attr.function_tag)  # YAO：只能出现在偶数序号的role: assistant, function
     accept_tags = (odd_tags, even_tags)
-    for i, messages in enumerate(examples[dataset_attr.messages]):
+    for i, messages in enumerate(examples[dataset_attr.messages]):  # YAO: 遍历batch，取每个样本的conversations(messages)
+        # YAO：system内容优先级：conversations中第1个对话(若有) > system字段 > 空字符串(随后会被替换为模板中指定的default_system，详见template.py的_encode方法)
+        # YAO: 首先若存在system角色且conversations中第1个对话来自system角色，则system内容取自第1个对话
         if dataset_attr.system_tag and messages[0][dataset_attr.role_tag] == dataset_attr.system_tag:
             system = messages[0][dataset_attr.content_tag]
             messages = messages[1:]
-        else:
+        else:   # YAO: 其次system内容取自system字段
             system = examples[dataset_attr.system][i] if dataset_attr.system else ""
 
         if len(messages) == 0:
@@ -116,12 +120,12 @@ def convert_sharegpt(
 
         aligned_messages = []
         broken_data = False
-        for turn_idx, message in enumerate(messages):
-            if message[dataset_attr.role_tag] not in accept_tags[turn_idx % 2]:
+        for turn_idx, message in enumerate(messages):   # YAO：遍历每一句对话
+            if message[dataset_attr.role_tag] not in accept_tags[turn_idx % 2]:     # YAO：奇数、偶数序号允许的role，限定死了
                 logger.warning("Invalid role tag in {}.".format(messages))
                 broken_data = True
 
-            aligned_messages.append(    # YAO: 统一后的标准格式，就是role和content
+            aligned_messages.append(    # YAO: 统一后的标准格式：role和content
                 {"role": tag_mapping[message[dataset_attr.role_tag]], "content": message[dataset_attr.content_tag]}
             )
 
@@ -157,7 +161,7 @@ def convert_sharegpt(
                 {"role": tag_mapping[chosen[dataset_attr.role_tag]], "content": chosen[dataset_attr.content_tag]},
                 {"role": tag_mapping[rejected[dataset_attr.role_tag]], "content": rejected[dataset_attr.content_tag]},
             ]
-        else:  # normal example   YAO: prompt是history对话和当前request，response是最后1句AI回复
+        else:  # normal example   YAO: prompt是列表，包括history对话和当前request，response是列表，只包括最后1句AI回复
             prompt = aligned_messages[:-1]
             response = aligned_messages[-1:]
 

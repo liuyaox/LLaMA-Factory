@@ -609,5 +609,12 @@
       "prompt": "prompt",
       "response": "response"
     }
+  },
+  "japanese_synthetic_0530_aya23_35b": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0530_aya23_35b.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
   }
 }

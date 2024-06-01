@@ -63,7 +63,6 @@ class Template:
     ) -> Sequence[Tuple[List[int], List[int]]]:
         r"""
         Returns multiple pairs of token ids representing prompts and responses respectively.
-        OLD YAO: N轮对话，返回N元素列表  用于preprocess_supervised_dataset, preprocess_packed_supervised_dataset
         """
         return self._encode(tokenizer, messages, system, tools, cutoff_len, reserved_label_len)
 
@@ -77,21 +76,23 @@ class Template:
         reserved_label_len: int,
     ) -> Sequence[Tuple[List[int], List[int]]]:
         r"""
+        YAO: 填充模板，每句对话内部组装(拼接各种special token)，encode为token_id，最后划分为一轮一轮对话
         Encodes formatted inputs to pairs of token ids.
-        Turn 0: system + query        resp
-        Turn t: sep + query           resp
+        Turn 0: system      + query + resp
+        Turn t: separator   + query + resp
         """
-        system = system or self.default_system      # YAO: 所有代码中只有此处有self.default_system，还是当作system的备胎
+        system = system or self.default_system      # YAO: system优先级，详见data/aligner.py中的convert_sharegpt方法
         encoded_messages = []
-        for i, message in enumerate(messages):      # YAO: message是一个对话，messages是一个对话session
+        for i, message in enumerate(messages):      # YAO: message是一句对话，messages是一个对话session
             elements = []
-            if i == 0 and (system or tools or self.force_system):
+            # YAO: 每一轮对话(every turn, 偶数序号0,2,4等)前面，都要拼接东西！
+            if i == 0 and (system or tools or self.force_system):   # YAO: 序号0拼接的是system和tool这些
                 tool_text = self.format_tools.apply(content=tools)[0] if tools else ""
                 elements += self.format_system.apply(content=(system + tool_text))
             elif i > 0 and i % 2 == 0:
-                elements += self.format_separator.apply()
+                elements += self.format_separator.apply()           # YAO：序号2,4等拼接的是separator(轮次分隔符，很多模型其实都是空字符串)
 
-            # YAO: 填充Prompt模板中的{{content}}，转换bos_token等通用和自家的特殊token，每个对话依次存在1个列表里
+            # YAO: 填充Prompt模板中的{{content}}，转换bos_token等通用和自家的特殊token，每句对话依次存在1个列表里
             if message["role"] == Role.USER.value:
                 elements += self.format_user.apply(content=message["content"], idx=str(i // 2))
             elif message["role"] == Role.ASSISTANT.value:
@@ -252,15 +253,15 @@ def _register_template(
     default_tool_formatter = ToolFormatter(tool_format="default")
     default_separator_formatter = EmptyFormatter()
     templates[name] = template_class(
-        format_user=format_user or default_user_formatter,                  # YAO：若没指定，使用默认的（同empty模板）
-        format_assistant=format_assistant or default_assistant_formatter,   # YAO: 若没指定，使用默认的（同empty模板）
-        format_system=format_system or default_user_formatter,              # YAO：若没指定，使用默认的（相比empty模板，slots少1个bos_token）
+        format_user=format_user or default_user_formatter,                  # YAO：若没指定，使用默认的(同empty模板)
+        format_assistant=format_assistant or default_assistant_formatter,   # YAO: 若没指定，使用默认的(同empty模板)
+        format_system=format_system or default_user_formatter,              # YAO：若没指定，使用默认的(相比empty模板，slots少1个bos_token)
         format_function=format_function or default_function_formatter,
         format_observation=format_observation or format_user or default_user_formatter,
         format_tools=format_tools or default_tool_formatter,
-        format_separator=format_separator or default_separator_formatter,
+        format_separator=format_separator or default_separator_formatter,   # YAO：若没指定，使用默认的(同empty模板，为空字符串)
         default_system=default_system,
-        stop_words=stop_words,
+        stop_words=stop_words,          # YAO: 若没指定，使用默认的，空列表
         image_token=image_token,
         efficient_eos=efficient_eos,
         replace_eos=replace_eos,
@@ -308,6 +309,7 @@ def _convert_slots_to_jinja(slots: "SLOTS", tokenizer: "PreTrainedTokenizer", pl
 
 
 def _get_jinja_template(template: "Template", tokenizer: "PreTrainedTokenizer") -> str:
+    """TODO YAO 使用的是哪种chat template???"""
     jinja_template = ""
 
     if template.default_system:
@@ -357,6 +359,7 @@ def get_template_and_fix_tokenizer(
         if template is None:
             raise ValueError("Template {} does not exist.".format(name))
 
+    # YAO: stop_words的作用：一是作为eos_token(若有要求)；二是作为special_token添加到vocab中
     stop_words = template.stop_words
     if template.replace_eos:
         if not stop_words:
@@ -369,7 +372,7 @@ def get_template_and_fix_tokenizer(
         _add_or_replace_eos_token(tokenizer, eos_token="<|endoftext|>")
 
     if tokenizer.pad_token_id is None:
-        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.pad_token = tokenizer.eos_token   # YAO: 如果没pad_token，就用eos_token来当作pad_token
         logger.info("Add pad token: {}".format(tokenizer.pad_token))
 
     if stop_words:
@@ -381,7 +384,7 @@ def get_template_and_fix_tokenizer(
             logger.warning("New tokens have been added, make sure `resize_vocab` is True.")
 
     try:
-        tokenizer.chat_template = _get_jinja_template(template, tokenizer)
+        tokenizer.chat_template = _get_jinja_template(template, tokenizer)  # YAO: TODO 为啥不使用tokenizer_config中定义的chat template?
     except ValueError:
         logger.info("Cannot add this chat template to tokenizer.")
 
@@ -509,7 +512,7 @@ _register_template(
 )
 
 
-_register_template(
+_register_template(             # YAO: chatml格式
     name="chatml",
     format_user=StringFormatter(slots=["<|im_start|>user\n{{content}}<|im_end|>\n<|im_start|>assistant\n"]),
     format_system=StringFormatter(slots=["<|im_start|>system\n{{content}}<|im_end|>\n"]),
@@ -556,6 +559,22 @@ _register_template(
         "You are Command-R, a brilliant, sophisticated, AI-assistant trained to assist human users "
         "by providing thorough responses. You are trained by Cohere."
     ),
+)
+
+
+_register_template(     # 20240601 from daishijun  除了force_system=True和没有default_system外，其他完全同cohere模板
+    name="aya23",
+    format_user=StringFormatter(
+        slots=[
+            (
+                "<|START_OF_TURN_TOKEN|><|USER_TOKEN|>{{content}}<|END_OF_TURN_TOKEN|>"
+                "<|START_OF_TURN_TOKEN|><|CHATBOT_TOKEN|>"
+            )
+        ]
+    ),
+    format_system=StringFormatter(slots=[{"bos_token"}, "<|START_OF_TURN_TOKEN|><|SYSTEM_TOKEN|>{{content}}<|END_OF_TURN_TOKEN|>"]),
+    format_assistant=StringFormatter(slots=["{{content}}", {"eos_token"}]),     # YAO：默认就是这个
+    force_system=True,
 )
 
 

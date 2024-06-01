@@ -58,6 +58,7 @@ class DatasetAttr:
 
 
 def get_dataset_list(data_args: "DataArguments") -> List["DatasetAttr"]:
+    """YAO：其实主要是配置dataset_attr的各种参数，包括columns, tags等"""
     if data_args.dataset is not None:
         dataset_names = [ds.strip() for ds in data_args.dataset.split(",")]
     else:
@@ -120,6 +121,7 @@ def get_dataset_list(data_args: "DataArguments") -> List["DatasetAttr"]:
             for column_name in column_names:
                 dataset_attr.set_attr(column_name, dataset_info[name]["columns"])
 
+        # YAO: 数据注册里若是sharegpt格式，需要定义tags，以指定role_key, content_key, user_word, assistant_word TODO 取代之前的role和content字段？
         if dataset_attr.formatting == "sharegpt" and "tags" in dataset_info[name]:
             tag_names = (
                 "role_tag",

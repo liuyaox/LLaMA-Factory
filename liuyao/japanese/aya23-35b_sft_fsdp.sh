@@ -3,41 +3,56 @@ set -ex
 
 pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 pip config set install.trusted-host mirrors.aliyun.com
-#pip install git+https://github.com/huggingface/transformers
-pip install trl==0.8.5
-pip install transformers==4.40.0    # 支持llama3
+pip install trl==0.8.6
+pip install peft==0.10.0
+pip install transformers==4.40.0
 
-export DEPT_HOME=/maindata/data/user/ai_story
+export DEPT_HOME=/mnt/data
 export LY_HOME=$DEPT_HOME/yao.liu
 export RUN_ROOT=$LY_HOME/multilingual/Japanese
 
+export NCCL_VERSION=2.17.1
+export NCCL_IB_HCA=mlx5
+export NCCL_IB_GID_INDEX=3
+export NCCL_IB_TIMEOUT=10000    # 若报错socket timeout之类的错，可以设置大一些（待验证）？
+export NCCL_IB_TC=136
+export NCCL_IB_SL=5
+export NCCL_IB_SPLIT_DATA_ON_QPS=1
+export NCCL_IB_QPS_PER_CONNECTION=8
+export NCCL_IB_RETRY_CNT=20
+export NCCL_NET_PLUGIN=none
+export NCCL_SOCKET_IFNAME=eth0    # 乌兰察布
+export NCCL_DEBUG=INFO
+
 
 # -----------配置修改区------------
-MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/meta-llama/Meta-Llama-3-8B-Instruct
-DATASET="japanese_synthetic_0516_llama3-8b"
-TOTAL_SAMPLES=26490
-RUN_GROUP=Llama-3-8B-Instruct_SFT
-TAG="synthetic_0516"
+MODEL_PATH=/mnt/data/shared/rolellm/nlp_models/CohereForAI/aya-23-35B
+RUN_GROUP=aya-23-35B_SFT
+
+## v2版合成数据
+DATASET="japanese_synthetic_0530_aya23_35b"
+TOTAL_SAMPLES=87474
+TAG="synthetic_0530"
+VAL_RATIO=0.05
 # -------------------------------
 
 
-NUM_MACHINES=1
-NUM_PROCESSES=8
+NUM_MACHINES=6
+NUM_PROCESSES=48
 EPOCHS=4
 LR=5e-6
 SEQ_LEN=4096
 NEFTUNE_NOISE_ALPHA=0
 PER_DEVICE_TRAIN_BATCH_SIZE=1
-GRADIENT_ACCUMULATION_STEPS=2
-GLOBAL_BATCH_SIZE=$((NUM_PROCESSES * PER_DEVICE_TRAIN_BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))  # 8 * 1 * 2 = 16
+GRADIENT_ACCUMULATION_STEPS=1
+GLOBAL_BATCH_SIZE=$((NUM_PROCESSES * PER_DEVICE_TRAIN_BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))  # 16 * 1 * 1 = 16
 GLOBAL_BATCH_SIZE_STR=${NUM_PROCESSES}x${PER_DEVICE_TRAIN_BATCH_SIZE}x${GRADIENT_ACCUMULATION_STEPS}
 
-VAL_RATIO=0.05
-TRAIN_SAMPLES_PER_EPOCH=$(echo "scale=0; $TOTAL_SAMPLES * (1 - $VAL_RATIO) / 1" | bc)   # 1个epoch的训练样本数
-TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))                  # 1个epoch的迭代次数    93   187
-#SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 1))    # 每个epoch保存1次   当只保存1次时，直接使用save_strategy=epoch吧
+TRAIN_SAMPLES_PER_EPOCH=$(echo "scale=0; $TOTAL_SAMPLES * (1 - $VAL_RATIO) / 1" | bc)   # 1个epoch的训练样本数 5525
+TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))    # 1个epoch的迭代次数   345  406
+#SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 1))     # 每个epoch保存1次   当只保存1次时，直接使用save_strategy=epoch吧
 #EVAL_STEPS=$((TRAIN_ITERS_PER_EPOCH / 20))    # 每个epoch评估20次
-EVAL_STEPS=100
+EVAL_STEPS=50
 
 
 RUN_NAME=${RUN_GROUP}_SEQ${SEQ_LEN}_LR${LR}_EP${EPOCHS}_GBS${GLOBAL_BATCH_SIZE_STR}_NEFT${NEFTUNE_NOISE_ALPHA}_$(date +%Y%m%d)_${TAG}
@@ -58,18 +73,21 @@ export WANDB_NAME=$RUN_NAME
 
 
 ACC_CONFIG_FILE="${RUN_DIR}/accelerate_config.yaml"
-cat << EOF > ${ACC_CONFIG_FILE}
+cat << EOF > $ACC_CONFIG_FILE
 compute_environment: LOCAL_MACHINE
-deepspeed_config:
-  gradient_accumulation_steps: ${GRADIENT_ACCUMULATION_STEPS}
-  offload_optimizer_device: cpu
-  offload_param_device: cpu
-  zero3_init_flag: false
-  zero3_save_16bit_model: true
-  zero_stage: 3
-distributed_type: DEEPSPEED
+debug: false
+distributed_type: FSDP
 downcast_bf16: 'no'
-machine_rank: 0
+fsdp_config:
+  fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP
+  fsdp_backward_prefetch: BACKWARD_PRE
+  fsdp_cpu_ram_efficient_loading: true
+  fsdp_forward_prefetch: false
+  fsdp_offload_params: false
+  fsdp_sharding_strategy: 1
+  fsdp_state_dict_type: FULL_STATE_DICT
+  fsdp_sync_module_states: true
+  fsdp_use_orig_params: true
 main_training_function: main
 mixed_precision: bf16
 num_machines: ${NUM_MACHINES}
@@ -82,31 +100,31 @@ tpu_use_sudo: false
 use_cpu: false
 EOF
 
+
 cd $LY_HOME/fork/LLaMA-Factory
-#accelerate=/home/ai_story/anaconda3/envs/py310/bin/accelerate  # TODO 在个人目录下安装试试！
-#${accelerate} launch --config_file ${ACC_CONFIG_FILE} \
 accelerate launch --machine_rank ${RANK} \
   --main_process_ip ${MASTER_ADDR} \
   --main_process_port ${MASTER_PORT} \
   --config_file ${ACC_CONFIG_FILE} \
-  src/train_bash.py \
+  src/train.py \
   --model_name_or_path $MODEL_PATH \
-  --dataset $DATASET \
+  --dataset ${DATASET} \
   --template empty \
   --cutoff_len ${SEQ_LEN} \
-  --preprocessing_num_workers 12 \
+  --preprocessing_num_workers 16 \
   --overwrite_cache \
   --do_train \
   --stage sft \
   --finetuning_type full \
-  --per_device_train_batch_size $PER_DEVICE_TRAIN_BATCH_SIZE \
-  --gradient_accumulation_steps $GRADIENT_ACCUMULATION_STEPS \
+  --per_device_train_batch_size ${PER_DEVICE_TRAIN_BATCH_SIZE} \
+  --gradient_accumulation_steps ${GRADIENT_ACCUMULATION_STEPS} \
   --learning_rate ${LR} \
   --lr_scheduler_type cosine \
   --warmup_ratio 0.03 \
   --num_train_epochs ${EPOCHS} \
   --bf16 \
   --flash_attn auto \
+  --repetition_penalty 1.08 \
   --output_dir ${RUN_DIR}/checkpoints \
   --save_strategy epoch \
   --report_to wandb \
