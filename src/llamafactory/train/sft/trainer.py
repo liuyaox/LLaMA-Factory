@@ -50,6 +50,10 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         return super().create_scheduler(num_training_steps, optimizer)
 
     def _save(self, output_dir: Optional[str] = None, state_dict: Optional[Dict[str, "torch.Tensor"]] = None) -> None:
+        # YAO TODO 此处可以转化state_dict的数据类型，比如fp32->fp16/bf16等！
+        # dtype = torch.bfloat16 if self.args.bf16 else (torch.float16 if self.args.fp16 else torch.float32)
+        # for k, v in state_dict.items():
+        #     state_dict[k] = v.to(dtype)
         super()._save(output_dir, state_dict)
         if self.processor is not None:
             output_dir = output_dir if output_dir is not None else self.args.output_dir

@@ -47,7 +47,7 @@ def init_adapter(
         logger.info("ZeRO3/FSDP/PureBF16/BAdam detected, remaining trainable params as their original precision.")
         cast_trainable_params_to_fp32 = False
     else:
-        logger.info("Upcasting trainable params to float32.")
+        logger.info("Upcasting trainable params to float32.")   # TODO 为啥要转化为float32？
         cast_trainable_params_to_fp32 = True
 
     if finetuning_args.finetuning_type == "full" and is_trainable:
@@ -139,7 +139,7 @@ def init_adapter(
                 forbidden_module in name for forbidden_module in forbidden_modules
             ):
                 if cast_trainable_params_to_fp32:
-                    param.data = param.data.to(torch.float32)   # YAO：数据的数据类型转化为float32  TODO:为啥都是float32？
+                    param.data = param.data.to(torch.float32)   # YAO：数据的数据类型也转化为float32
             else:
                 param.requires_grad_(False)
 

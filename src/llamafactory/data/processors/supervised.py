@@ -60,7 +60,7 @@ def preprocess_supervised_dataset(
         ):
             if data_args.train_on_prompt:           # YAO: train_on_prompt是说，训练时，既学prompt，也学response TODO 应用场景是？
                 source_mask = source_ids
-            elif turn_idx != 0 and template.efficient_eos:
+            elif turn_idx != 0 and template.efficient_eos:  # YAO: 有意思！encode_multiturn时没有添加eos，此处手动添加eos，占用source第1个token位置！
                 source_mask = [tokenizer.eos_token_id] + [IGNORE_INDEX] * (len(source_ids) - 1)
             else:
                 source_mask = [IGNORE_INDEX] * len(source_ids)
@@ -69,7 +69,7 @@ def preprocess_supervised_dataset(
             labels += source_mask + target_ids      # YAO：高效训练：所有prompt为IGNORED，只学response，label形如：<IGNORE><response1><IGNORE><response2>...
 
         if template.efficient_eos:
-            input_ids += [tokenizer.eos_token_id]
+            input_ids += [tokenizer.eos_token_id]   # YAO：之前encode_multiturn时没有添加eos，此处最后一轮，需要手动添加
             labels += [tokenizer.eos_token_id]
 
         model_inputs["input_ids"].append(input_ids)

@@ -3,75 +3,51 @@ set -ex
 
 pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 pip config set install.trusted-host mirrors.aliyun.com
-pip install trl==0.8.6
-pip install peft==0.10.0
-pip install transformers==4.40.0
+pip install transformers==4.38.1
 
 export DEPT_HOME=/maindata/data/user/ai_story
 export LY_HOME=$DEPT_HOME/yao.liu
-export RUN_ROOT=$LY_HOME/multilingual/Japanese
+export RUN_ROOT=$LY_HOME/multilingual/Indonesian
 
 export NCCL_VERSION=2.17.1
 export NCCL_IB_HCA=mlx5
 export NCCL_IB_GID_INDEX=3
-export NCCL_IB_TIMEOUT=10000    # 若报错socket timeout之类的错，可以设置大一些（待验证）？
+export NCCL_IB_TIMEOUT=1000
 export NCCL_IB_TC=136
 export NCCL_IB_SL=5
 export NCCL_IB_SPLIT_DATA_ON_QPS=1
 export NCCL_IB_QPS_PER_CONNECTION=8
-export NCCL_IB_RETRY_CNT=20
+export NCCL_IB_RETRY_CNT=13
 export NCCL_NET_PLUGIN=none
 export NCCL_SOCKET_IFNAME=bond0
 export NCCL_DEBUG=INFO
 
 
 # -----------配置修改区------------
-MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/Japanese/karakuri-ai/karakuri-lm-8x7b-chat-v0.1
-RUN_GROUP=karakuri-lm-8x7b-chat-v0.1_SFT
-
-# 20240517
-#DATASET="japanese_synthetic_0516_karakuri-lm8x7b-chat"
-#TOTAL_SAMPLES=26481
-#TAG="synthetic_0516"
-#VAL_RATIO=0.05
-
-# 20240530
-## v2版合成数据
-DATASET="japanese_synthetic_0530_karakuri_lm8x7b_chat"
-TOTAL_SAMPLES=87474
-TAG="synthetic_0530"
-VAL_RATIO=0.05
-
-### 英语翻译数据
-#DATASET="japanese_translate_0529_karakuri_lm8x7b_chat"
-#TOTAL_SAMPLES=3513
-#TAG="translate_0529"
-#VAL_RATIO=0.1
-#
-### v2版合成数据 + 英语翻译数据
-#DATASET="japanese_synthetic_0530_karakuri_lm8x7b_chat,japanese_translate_0529_karakuri_lm8x7b_chat"
-#TOTAL_SAMPLES=90987
-#TAG="synthetic0530_translate0529"
-#VAL_RATIO=0.05
+MODEL_PATH=$DEPT_HOME/nlp_models/Qwen/Qwen1.5-32B-Chat
+DATASET="indonesian_15.1_2_qwen"
+TAG="indonesian_15.1_2"
+TOTAL_SAMPLES=3219
+RUN_GROUP=Qwen1.5-32B-Chat_SFT
 # -------------------------------
 
 
-NUM_MACHINES=4      # 最低2个节点
-NUM_PROCESSES=32
+NUM_MACHINES=2
+NUM_PROCESSES=16
 EPOCHS=4
 LR=5e-6
 SEQ_LEN=4096
 NEFTUNE_NOISE_ALPHA=0
 PER_DEVICE_TRAIN_BATCH_SIZE=1
-GRADIENT_ACCUMULATION_STEPS=1   # 2会OOM
+GRADIENT_ACCUMULATION_STEPS=1
 GLOBAL_BATCH_SIZE=$((NUM_PROCESSES * PER_DEVICE_TRAIN_BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))  # 16 * 1 * 1 = 16
 GLOBAL_BATCH_SIZE_STR=${NUM_PROCESSES}x${PER_DEVICE_TRAIN_BATCH_SIZE}x${GRADIENT_ACCUMULATION_STEPS}
 
+VAL_RATIO=0.1
 TRAIN_SAMPLES_PER_EPOCH=$(echo "scale=0; $TOTAL_SAMPLES * (1 - $VAL_RATIO) / 1" | bc)   # 1个epoch的训练样本数 5525
 TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))    # 1个epoch的迭代次数   345  406
 #SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 1))     # 每个epoch保存1次   当只保存1次时，直接使用save_strategy=epoch吧
-#EVAL_STEPS=$((TRAIN_ITERS_PER_EPOCH / 20))    # 每个epoch评估20次
-EVAL_STEPS=50
+EVAL_STEPS=$((TRAIN_ITERS_PER_EPOCH / 20))    # 每个epoch评估20次
 
 
 RUN_NAME=${RUN_GROUP}_SEQ${SEQ_LEN}_LR${LR}_EP${EPOCHS}_GBS${GLOBAL_BATCH_SIZE_STR}_NEFT${NEFTUNE_NOISE_ALPHA}_$(date +%Y%m%d)_${TAG}
@@ -86,7 +62,7 @@ cat $0 > $RUN_DIR/launch_script.sh
 export WANDB_API_KEY=c3e85199a4ec8fcf33fe2fcbcf55f4f7d3ea20e9
 wandb login --relogin $WANDB_API_KEY
 export WANDB_ENTITY=littlecatx
-export WANDB_PROJECT=linky_llm_japanese
+export WANDB_PROJECT=linky_user_model
 export WANDB_GROUP=$RUN_GROUP
 export WANDB_NAME=$RUN_NAME
 
@@ -119,16 +95,15 @@ tpu_use_sudo: false
 use_cpu: false
 EOF
 
-
-cd $LY_HOME/fork/LLaMA-Factory
+cd $LY_HOME/fork2/LLaMA-Factory
 accelerate launch --machine_rank ${RANK} \
   --main_process_ip ${MASTER_ADDR} \
   --main_process_port ${MASTER_PORT} \
   --config_file ${ACC_CONFIG_FILE} \
-  src/train.py \
+  src/train_bash.py \
   --model_name_or_path $MODEL_PATH \
   --dataset ${DATASET} \
-  --template empty \
+  --template custom_blank \
   --cutoff_len ${SEQ_LEN} \
   --preprocessing_num_workers 16 \
   --overwrite_cache \
@@ -142,8 +117,7 @@ accelerate launch --machine_rank ${RANK} \
   --warmup_ratio 0.03 \
   --num_train_epochs ${EPOCHS} \
   --bf16 \
-  --flash_attn auto \
-  --repetition_penalty 1.08 \
+  --flash_attn \
   --output_dir ${RUN_DIR}/checkpoints \
   --save_strategy epoch \
   --report_to wandb \

@@ -1,0 +1,4 @@
+model_name_or_path: /maindata/data/user/ai_story/yao.liu/multilingual/Japanese/karakuri-lm-8x7b-chat-v0.1_SFT_SEQ4096_LR5e-6_EP4_GBS32x1x1_NEFT0_20240530_synthetic_0530/checkpoints/checkpoint-2597
+template: mistral
+infer_backend: vllm
+vllm_enforce_eager: true

@@ -1,0 +1,28 @@
+### model
+model_name_or_path: /maindata/data/user/ai_story/yao.liu/multilingual/Japanese/suzume-llama-3-8B-japanese_SFT_SEQ4096_LR5e-6_EP4_GBS8x1x2_NEFT0_20240519_synthetic_0516/checkpoints/checkpoint-1573
+bf16: true
+
+### method
+do_predict: true
+stage: sft
+finetuning_type: full
+
+### dataset
+dataset: japanese_synthetic_0516_suzume-llama3-8b
+template: empty
+cutoff_len: 4096
+max_samples: 20
+max_new_tokens: 512
+preprocessing_num_workers: 16
+overwrite_cache: true
+
+### output
+output_dir: /maindata/data/user/ai_story/yao.liu/Dataset/SFT
+overwrite_output_dir: true
+
+### eval
+per_device_eval_batch_size: 8
+predict_with_generate: true     # 用来compute metrics(pred与label之间)
+
+
+# 命令：CUDA_VISIBLE_DEVICES=0,1 llamafactory-cli train liuyao/inference/cli_train_do_predict.yaml

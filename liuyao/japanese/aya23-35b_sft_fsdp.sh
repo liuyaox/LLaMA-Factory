@@ -1,11 +1,11 @@
 #!/bin/bash
 set -ex
-
-pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
-pip config set install.trusted-host mirrors.aliyun.com
-pip install trl==0.8.6
-pip install peft==0.10.0
-pip install transformers==4.40.0
+#
+#pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
+#pip config set install.trusted-host mirrors.aliyun.com
+#pip install trl==0.8.6
+#pip install peft==0.10.0
+#pip install transformers==4.40.0
 
 export DEPT_HOME=/mnt/data
 export LY_HOME=$DEPT_HOME/yao.liu
@@ -101,8 +101,8 @@ use_cpu: false
 EOF
 
 
-cd $LY_HOME/fork/LLaMA-Factory
-accelerate launch --machine_rank ${RANK} \
+cd $LY_HOME/github/LLaMA-Factory
+/mnt/data/miniconda3/envs/ly310/bin/accelerate launch --machine_rank ${RANK} \
   --main_process_ip ${MASTER_ADDR} \
   --main_process_port ${MASTER_PORT} \
   --config_file ${ACC_CONFIG_FILE} \

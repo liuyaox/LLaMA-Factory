@@ -179,7 +179,7 @@ class ModelArguments:
     )
 
     def __post_init__(self):
-        self.compute_dtype = None
+        self.compute_dtype = None               # YAO: TODO 设置为None ???
         self.device_map = None
         self.model_max_length = None
 

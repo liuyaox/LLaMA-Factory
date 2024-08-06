@@ -9,7 +9,7 @@ pip install transformers==4.40.0
 
 export DEPT_HOME=/maindata/data/user/ai_story
 export LY_HOME=$DEPT_HOME/yao.liu
-export RUN_ROOT=$LY_HOME/multilingual/Japanese
+export RUN_ROOT=$LY_HOME/multilingual/Indonesian
 
 export NCCL_VERSION=2.17.1
 export NCCL_IB_HCA=mlx5
@@ -26,55 +26,34 @@ export NCCL_DEBUG=INFO
 
 
 # -----------配置修改区------------
-MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/Japanese/karakuri-ai/karakuri-lm-8x7b-chat-v0.1
-RUN_GROUP=karakuri-lm-8x7b-chat-v0.1_SFT
+MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/Qwen/Qwen2-57B-A14B-Instruct
+RUN_GROUP=Qwen2-57B-A14B-Instruct_SFT
+TEMPLATE="empty"
 
-# 20240517
-#DATASET="japanese_synthetic_0516_karakuri-lm8x7b-chat"
-#TOTAL_SAMPLES=26481
-#TAG="synthetic_0516"
-#VAL_RATIO=0.05
+DATASET="id_expand_trans_write_chatedit_qwen"
+TOTAL_SAMPLES=8380
+TAG="expand_trans_write_chatedit"
 
-# 20240530
-## v2版合成数据
-DATASET="japanese_synthetic_0530_karakuri_lm8x7b_chat"
-TOTAL_SAMPLES=87474
-TAG="synthetic_0530"
-VAL_RATIO=0.05
-
-### 英语翻译数据
-#DATASET="japanese_translate_0529_karakuri_lm8x7b_chat"
-#TOTAL_SAMPLES=3513
-#TAG="translate_0529"
-#VAL_RATIO=0.1
-#
-### v2版合成数据 + 英语翻译数据
-#DATASET="japanese_synthetic_0530_karakuri_lm8x7b_chat,japanese_translate_0529_karakuri_lm8x7b_chat"
-#TOTAL_SAMPLES=90987
-#TAG="synthetic0530_translate0529"
-#VAL_RATIO=0.05
+VAL_RATIO=0.1
+EVAL_STEPS=30
+LR=5e-6
+EPOCHS=4
 # -------------------------------
 
 
-NUM_MACHINES=4      # 最低2个节点
+NUM_MACHINES=4
 NUM_PROCESSES=32
-EPOCHS=4
-LR=5e-6
 SEQ_LEN=4096
-NEFTUNE_NOISE_ALPHA=0
 PER_DEVICE_TRAIN_BATCH_SIZE=1
-GRADIENT_ACCUMULATION_STEPS=1   # 2会OOM
+GRADIENT_ACCUMULATION_STEPS=1
 GLOBAL_BATCH_SIZE=$((NUM_PROCESSES * PER_DEVICE_TRAIN_BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))  # 16 * 1 * 1 = 16
 GLOBAL_BATCH_SIZE_STR=${NUM_PROCESSES}x${PER_DEVICE_TRAIN_BATCH_SIZE}x${GRADIENT_ACCUMULATION_STEPS}
 
 TRAIN_SAMPLES_PER_EPOCH=$(echo "scale=0; $TOTAL_SAMPLES * (1 - $VAL_RATIO) / 1" | bc)   # 1个epoch的训练样本数 5525
 TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))    # 1个epoch的迭代次数   345  406
-#SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 1))     # 每个epoch保存1次   当只保存1次时，直接使用save_strategy=epoch吧
-#EVAL_STEPS=$((TRAIN_ITERS_PER_EPOCH / 20))    # 每个epoch评估20次
-EVAL_STEPS=50
 
 
-RUN_NAME=${RUN_GROUP}_SEQ${SEQ_LEN}_LR${LR}_EP${EPOCHS}_GBS${GLOBAL_BATCH_SIZE_STR}_NEFT${NEFTUNE_NOISE_ALPHA}_$(date +%Y%m%d)_${TAG}
+RUN_NAME=${RUN_GROUP}_SEQ${SEQ_LEN}_LR${LR}_EP${EPOCHS}_GBS${GLOBAL_BATCH_SIZE_STR}_$(date +%Y%m%d)_${TAG}
 RUN_DIR=$RUN_ROOT/$RUN_NAME
 
 mkdir -p $RUN_DIR
@@ -86,7 +65,7 @@ cat $0 > $RUN_DIR/launch_script.sh
 export WANDB_API_KEY=c3e85199a4ec8fcf33fe2fcbcf55f4f7d3ea20e9
 wandb login --relogin $WANDB_API_KEY
 export WANDB_ENTITY=littlecatx
-export WANDB_PROJECT=linky_llm_japanese
+export WANDB_PROJECT=linky_llm_indonesian
 export WANDB_GROUP=$RUN_GROUP
 export WANDB_NAME=$RUN_NAME
 
@@ -128,9 +107,9 @@ accelerate launch --machine_rank ${RANK} \
   src/train.py \
   --model_name_or_path $MODEL_PATH \
   --dataset ${DATASET} \
-  --template empty \
+  --template ${TEMPLATE} \
   --cutoff_len ${SEQ_LEN} \
-  --preprocessing_num_workers 16 \
+  --preprocessing_num_workers 32 \
   --overwrite_cache \
   --do_train \
   --stage sft \
@@ -152,7 +131,7 @@ accelerate launch --machine_rank ${RANK} \
   --ddp_timeout 7200 \
   --do_eval \
   --val_size $VAL_RATIO \
+  --per_device_eval_batch_size 4 \
   --evaluation_strategy steps \
   --eval_steps $EVAL_STEPS \
   2>&1 | tee ${RUN_DIR}/log/$(date +%Y%m%d).log
-#  --neftune_noise_alpha ${NEFTUNE_NOISE_ALPHA} \

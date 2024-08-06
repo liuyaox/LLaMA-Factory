@@ -561,60 +561,190 @@
       "response": "response"
     }
   },
-  "japanese_synthetic_0516_llama3-8b": {
-    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_llama3-8b.jsonl",
+  "id_15.1_2_write0413_qwen2": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/indonesian/id_15.1_2_write0413_qwen2.jsonl",
     "columns": {
       "prompt": "prompt",
       "response": "response"
     }
   },
-  "japanese_synthetic_0516_suzume-llama3-8b": {
-    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_suzume-llama3-8b.jsonl",
+  "ja_synthetic0516_llama3-8b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0516_llama3-8b.jsonl",
     "columns": {
       "prompt": "prompt",
       "response": "response"
     }
   },
-  "japanese_synthetic_0516_mixtral8x7b": {
-    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_mixtral8x7b.jsonl",
+  "ja_synthetic0516_suzume-llama3-8b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0516_suzume-llama3-8b.jsonl",
     "columns": {
       "prompt": "prompt",
       "response": "response"
     }
   },
-  "japanese_synthetic_0516_evollmjp7b": {
-    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_evollmjp7b.jsonl",
+  "ja_synthetic0516_mixtral8x7b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0516_mixtral8x7b.jsonl",
     "columns": {
       "prompt": "prompt",
       "response": "response"
     }
   },
-  "japanese_synthetic_0516_karakuri-lm8x7b-chat": {
-    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0516_karakuri-lm8x7b-chat.jsonl",
+  "ja_synthetic0516_evollmjp7b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0516_evollmjp7b.jsonl",
     "columns": {
       "prompt": "prompt",
       "response": "response"
     }
   },
-  "japanese_synthetic_0530_karakuri_lm8x7b_chat": {
-    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0530_karakuri_lm8x7b_chat.jsonl",
+  "ja_synthetic0516_karakuri-lm8x7b-chat": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0516_karakuri-lm8x7b-chat.jsonl",
     "columns": {
       "prompt": "prompt",
       "response": "response"
     }
   },
-  "japanese_translate_0529_karakuri_lm8x7b_chat": {
-    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/japanese_translate_0529_karakuri_lm8x7b_chat.jsonl",
+  "ja_synthetic0530_karakuri_lm8x7b_chat": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0530_karakuri_lm8x7b_chat.jsonl",
     "columns": {
       "prompt": "prompt",
       "response": "response"
     }
   },
-  "japanese_synthetic_0530_aya23_35b": {
-    "file_name": "/mnt/data/yao.liu/Dataset/SFT/japanese/japanese_synthetic_0530_aya23_35b.jsonl",
+  "ja_translate0529_karakuri_lm8x7b_chat": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_translate0529_karakuri_lm8x7b_chat.jsonl",
     "columns": {
       "prompt": "prompt",
       "response": "response"
+    }
+  },
+  "ja_synthetic0530_aya23_35b": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0530_aya23_35b.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "ja_synthetic0530_qwen2": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0530_qwen2.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "ja_synthetic0530_common1": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0530_common1.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "ja_synthetic0530_common2": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/japanese/ja_synthetic0530_common2.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "user_model_ja_240619": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/user_model/user_model_ja_240619.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "id_translate15_1": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/indonesian/id_training_translate15_1.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "id_write0422": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/indonesian/id_training_write0422.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "id_chatedit0508": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/indonesian/id_training_chatedit0508.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "id_expand_trans_write_chatedit_sailor": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/indonesian/id_training_expand_trans_write_chatedit_sailor.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "id_expand_trans_write_chatedit_qwen": {
+    "file_name": "/maindata/data/user/ai_story/yao.liu/Dataset/SFT/indonesian/id_training_expand_trans_write_chatedit_qwen.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "id_expand_trans_sailor": {
+    "file_name": "/maindata/data/shared/ai_story_workspace/yao.liu/Dataset/SFT/indonesian/id_training_expand_trans_sailor.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "id_expand_write_sailor": {
+    "file_name": "/maindata/data/shared/ai_story_workspace/yao.liu/Dataset/SFT/indonesian/id_training_expand_write_sailor.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "id_expand_chatedit_sailor": {
+    "file_name": "/maindata/data/shared/ai_story_workspace/yao.liu/Dataset/SFT/indonesian/id_training_expand_chatedit_sailor.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "en_synthetic_v3_2_sfw": {
+    "file_name": "/maindata/data/shared/ai_story_workspace/yao.liu/Dataset/SFT/english/synthetic_v3_2/240725/synthetic_v3_2_sfw_training.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "en_synthetic_v3_2_nsfw": {
+    "file_name": "/maindata/data/shared/ai_story_workspace/yao.liu/Dataset/SFT/english/synthetic_v3_2/240725/synthetic_v3_2_nsfw_training.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "en_synthetic_v3_2_normal": {
+    "file_name": "/maindata/data/shared/ai_story_workspace/yao.liu/Dataset/SFT/english/synthetic_v3_2/240725/synthetic_v3_2_normal_training.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
     }
   }
 }

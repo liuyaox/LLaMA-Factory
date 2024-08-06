@@ -54,7 +54,7 @@ def create_ui(demo_mode: bool = False) -> gr.Blocks:
 
 
 def create_web_demo() -> gr.Blocks:
-    engine = Engine(pure_chat=True)
+    engine = Engine(pure_chat=True)         # YAO：Engine <- WebChatModel <- ChatModel
 
     with gr.Blocks(title="Web Demo", css=CSS) as demo:
         lang = gr.Dropdown(choices=["en", "zh"])

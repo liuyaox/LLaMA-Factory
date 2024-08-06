@@ -132,7 +132,7 @@ def load_model(
         elif model_args.visual_inputs:
             model = AutoModelForVision2Seq.from_pretrained(**init_kwargs)
         else:
-            model = AutoModelForCausalLM.from_pretrained(**init_kwargs)
+            model = AutoModelForCausalLM.from_pretrained(**init_kwargs)     # YAO: 语言模型加载
 
         if model_args.mixture_of_depths == "convert":
             model = convert_pretrained_model_to_mod(model, config, model_args)

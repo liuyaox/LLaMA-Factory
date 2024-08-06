@@ -163,7 +163,7 @@ class HuggingfaceEngine(BaseEngine):
             model, tokenizer, processor, template, generating_args, messages, system, tools, image, input_kwargs
         )
         generate_output = model.generate(**gen_kwargs)
-        response_ids = generate_output[:, prompt_length:]
+        response_ids = generate_output[:, prompt_length:]   # YAO: model.generate in transformers always appends the answer to the inputs, so truncate the input from the answer
         response = tokenizer.batch_decode(response_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
         results = []
         for i in range(len(response)):

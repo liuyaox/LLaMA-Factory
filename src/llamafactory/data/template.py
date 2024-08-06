@@ -139,8 +139,8 @@ class Template:
     ) -> Sequence[Tuple[List[int], List[int]]]:
         encoded_pairs = []
         total_length = 0
-        for i in range(0, len(encoded_messages), 2):
-            if total_length >= cutoff_len:
+        for i in range(0, len(encoded_messages), 2):    # YAO: 要求encoded_messages必须是u/a/u/a...的顺序
+            if total_length >= cutoff_len:              # TODO 下次看到这里，要研究下cuteoff_len的实际逻辑！！！
                 break
 
             max_source_len, max_target_len = infer_max_len(
@@ -309,7 +309,7 @@ def _convert_slots_to_jinja(slots: "SLOTS", tokenizer: "PreTrainedTokenizer", pl
 
 
 def _get_jinja_template(template: "Template", tokenizer: "PreTrainedTokenizer") -> str:
-    """TODO YAO 使用的是哪种chat template???"""
+    """YAO: 基于定义的format_system/user/assistant等，通过手动拼接，生成具有统一格式的jinja模板，虽不同于原始模板，但apply_chat_template的结果是一样的"""
     jinja_template = ""
 
     if template.default_system:
@@ -648,7 +648,7 @@ _register_template(     # YAO：替换之前定义的custom_blank
     name="empty",
     format_user=StringFormatter(slots=["{{content}}"]),
     format_assistant=StringFormatter(slots=["{{content}}"]),
-    format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),    # YAO：相当于bos_token(需要转化为id)与{{content}}(需要填充)拼接
+    format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"]),    # YAO：一般前面会加个bos_token（有的模型bos_token为空）
     efficient_eos=True,
     force_system=True,
 )
@@ -820,6 +820,7 @@ _register_template(
 )
 
 
+# 除qwen外，还适用于: sailor7b(基模是qwen1.5)
 _register_template(
     name="qwen",
     format_user=StringFormatter(slots=["<|im_start|>user\n{{content}}<|im_end|>\n<|im_start|>assistant\n"]),

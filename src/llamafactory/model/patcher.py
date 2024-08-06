@@ -43,7 +43,7 @@ def patch_config(
     init_kwargs: Dict[str, Any],
     is_trainable: bool,
 ) -> None:
-    if model_args.compute_dtype is None:  # priority: bf16 > fp16 > fp32    YAO：若没指定，则使用模型config中的精度(推断出来的精度)
+    if model_args.compute_dtype is None:  # YAO: 模型加载的torch_dtype核心逻辑：bf16(若模型config中指定的是bf16) > fp16 > fp32
         model_args.compute_dtype = infer_optim_dtype(model_dtype=getattr(config, "torch_dtype", None))
 
     if is_torch_npu_available():
@@ -73,7 +73,7 @@ def patch_config(
     init_kwargs["low_cpu_mem_usage"] = model_args.low_cpu_mem_usage and (not is_deepspeed_zero3_enabled())
 
     if not is_deepspeed_zero3_enabled() and not is_fsdp_enabled():  # cast dtype and device if not use zero3 or fsdp
-        init_kwargs["torch_dtype"] = model_args.compute_dtype
+        init_kwargs["torch_dtype"] = model_args.compute_dtype       # YAO: compute_dtype指的是load模型时的torch_dtype，既用于训练，也用于推理
 
         if init_kwargs["low_cpu_mem_usage"]:  # device map requires low_cpu_mem_usage=True
             if "device_map" not in init_kwargs and model_args.device_map:

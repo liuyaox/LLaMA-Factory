@@ -31,6 +31,7 @@ class ComputeMetrics:
     def __call__(self, eval_preds: Sequence[Union[np.ndarray, Tuple[np.ndarray]]]) -> Dict[str, float]:
         r"""
         Uses the model predictions to compute metrics.
+        YAO: 可自定义关于预测结果的指标
         """
         preds, labels = eval_preds
         score_dict = {"rouge-1": [], "rouge-2": [], "rouge-l": [], "bleu-4": []}

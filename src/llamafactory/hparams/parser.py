@@ -36,13 +36,13 @@ _EVAL_CLS = Tuple[ModelArguments, DataArguments, EvaluationArguments, Finetuning
 
 
 def _parse_args(parser: "HfArgumentParser", args: Optional[Dict[str, Any]] = None) -> Tuple[Any]:
-    if args is not None:
+    if args is not None:                                        # YAO: 要么解析直接传入的参数
         return parser.parse_dict(args)
 
-    if len(sys.argv) == 2 and sys.argv[1].endswith(".yaml"):
+    if len(sys.argv) == 2 and sys.argv[1].endswith(".yaml"):    # YAO: 要么读取yaml参数配置文件
         return parser.parse_yaml_file(os.path.abspath(sys.argv[1]))
 
-    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):    # YAO: 要么读取json参数配置文件
         return parser.parse_json_file(os.path.abspath(sys.argv[1]))
 
     (*parsed_args, unknown_args) = parser.parse_args_into_dataclasses(return_remaining_strings=True)
@@ -278,7 +278,7 @@ def get_train_args(args: Optional[Dict[str, Any]] = None) -> _TRAIN_CLS:
         )
 
     # Post-process model arguments
-    if training_args.bf16 or finetuning_args.pure_bf16:
+    if training_args.bf16 or finetuning_args.pure_bf16:  # YAO：train时，会把training_args的bf16/fp16传递给model_args（继而传递给load_model的参数torch_dtype），infer时没这种处理！
         model_args.compute_dtype = torch.bfloat16
     elif training_args.fp16:
         model_args.compute_dtype = torch.float16

@@ -26,44 +26,44 @@ export NCCL_DEBUG=INFO
 
 
 # -----------配置修改区------------
-MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/Japanese/karakuri-ai/karakuri-lm-8x7b-chat-v0.1
-RUN_GROUP=karakuri-lm-8x7b-chat-v0.1_SFT
+MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/Qwen/Qwen2-57B-A14B-Instruct
+RUN_GROUP=Qwen2-57B-A14B-Instruct_SFT
 
-# 20240517
-#DATASET="japanese_synthetic_0516_karakuri-lm8x7b-chat"
-#TOTAL_SAMPLES=26481
-#TAG="synthetic_0516"
+# 20240609
+### 手动拼接 方案1，不再推荐
+#TEMPLATE="empty"
+#DATASET="ja_synthetic0530_qwen2"
+#TOTAL_SAMPLES=87474
+#TAG="synthetic0530"
 #VAL_RATIO=0.05
+#EVAL_STEPS=50
 
-# 20240530
-## v2版合成数据
-DATASET="japanese_synthetic_0530_karakuri_lm8x7b_chat"
-TOTAL_SAMPLES=87474
-TAG="synthetic_0530"
-VAL_RATIO=0.05
+## 自动拼接1：greeting放在system里  方案2，最推荐这个
+TEMPLATE="qwen"
+DATASET="ja_synthetic0530_common1"
+TOTAL_SAMPLES=4603
+TAG="synthetic0530_common1"
+VAL_RATIO=0.1
+EVAL_STEPS=5
 
-### 英语翻译数据
-#DATASET="japanese_translate_0529_karakuri_lm8x7b_chat"
-#TOTAL_SAMPLES=3513
-#TAG="translate_0529"
+### 自动拼接2：greeting放在history里  方案3
+#TEMPLATE="qwen"
+#DATASET="ja_synthetic0530_common2"
+#TOTAL_SAMPLES=4603
+#TAG="synthetic0530_common2"
 #VAL_RATIO=0.1
-#
-### v2版合成数据 + 英语翻译数据
-#DATASET="japanese_synthetic_0530_karakuri_lm8x7b_chat,japanese_translate_0529_karakuri_lm8x7b_chat"
-#TOTAL_SAMPLES=90987
-#TAG="synthetic0530_translate0529"
-#VAL_RATIO=0.05
+#EVAL_STEPS=5
 # -------------------------------
 
 
-NUM_MACHINES=4      # 最低2个节点
+NUM_MACHINES=4
 NUM_PROCESSES=32
 EPOCHS=4
 LR=5e-6
 SEQ_LEN=4096
 NEFTUNE_NOISE_ALPHA=0
 PER_DEVICE_TRAIN_BATCH_SIZE=1
-GRADIENT_ACCUMULATION_STEPS=1   # 2会OOM
+GRADIENT_ACCUMULATION_STEPS=1
 GLOBAL_BATCH_SIZE=$((NUM_PROCESSES * PER_DEVICE_TRAIN_BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))  # 16 * 1 * 1 = 16
 GLOBAL_BATCH_SIZE_STR=${NUM_PROCESSES}x${PER_DEVICE_TRAIN_BATCH_SIZE}x${GRADIENT_ACCUMULATION_STEPS}
 
@@ -71,7 +71,6 @@ TRAIN_SAMPLES_PER_EPOCH=$(echo "scale=0; $TOTAL_SAMPLES * (1 - $VAL_RATIO) / 1" 
 TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))    # 1个epoch的迭代次数   345  406
 #SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 1))     # 每个epoch保存1次   当只保存1次时，直接使用save_strategy=epoch吧
 #EVAL_STEPS=$((TRAIN_ITERS_PER_EPOCH / 20))    # 每个epoch评估20次
-EVAL_STEPS=50
 
 
 RUN_NAME=${RUN_GROUP}_SEQ${SEQ_LEN}_LR${LR}_EP${EPOCHS}_GBS${GLOBAL_BATCH_SIZE_STR}_NEFT${NEFTUNE_NOISE_ALPHA}_$(date +%Y%m%d)_${TAG}
@@ -128,9 +127,9 @@ accelerate launch --machine_rank ${RANK} \
   src/train.py \
   --model_name_or_path $MODEL_PATH \
   --dataset ${DATASET} \
-  --template empty \
+  --template ${TEMPLATE} \
   --cutoff_len ${SEQ_LEN} \
-  --preprocessing_num_workers 16 \
+  --preprocessing_num_workers 32 \
   --overwrite_cache \
   --do_train \
   --stage sft \
@@ -152,6 +151,7 @@ accelerate launch --machine_rank ${RANK} \
   --ddp_timeout 7200 \
   --do_eval \
   --val_size $VAL_RATIO \
+  --per_device_eval_batch_size 4 \
   --evaluation_strategy steps \
   --eval_steps $EVAL_STEPS \
   2>&1 | tee ${RUN_DIR}/log/$(date +%Y%m%d).log

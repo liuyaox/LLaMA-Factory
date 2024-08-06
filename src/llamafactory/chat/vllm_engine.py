@@ -35,7 +35,7 @@ class VllmEngine(BaseEngine):
         generating_args: "GeneratingArguments",
     ) -> None:
         config = load_config(model_args)  # may download model from ms hub
-        infer_dtype = infer_optim_dtype(model_dtype=getattr(config, "torch_dtype", None))
+        infer_dtype = infer_optim_dtype(model_dtype=getattr(config, "torch_dtype", None))   # YAO: 同HuggingfaceEngine一样，优先级：bf16(若模型config中指定的是bf16) > fp16 > fp32
         infer_dtype = str(infer_dtype).split(".")[-1]
 
         self.can_generate = finetuning_args.stage == "sft"
@@ -102,7 +102,7 @@ class VllmEngine(BaseEngine):
 
         paired_messages = messages + [{"role": "assistant", "content": ""}]
         system = system or self.generating_args["default_system"]
-        prompt_ids, _ = self.template.encode_oneturn(
+        prompt_ids, _ = self.template.encode_oneturn(       # YAO: 输入的template，在这里用于encode TODO 为什么不是多轮？
             tokenizer=self.tokenizer, messages=paired_messages, system=system, tools=tools
         )
 
