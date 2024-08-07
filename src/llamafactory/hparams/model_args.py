@@ -1,5 +1,28 @@
+# Copyright 2024 HuggingFace Inc. and the LlamaFactory team.
+#
+# This code is inspired by the HuggingFace's transformers library.
+# https://github.com/huggingface/transformers/blob/v4.40.0/examples/pytorch/language-modeling/run_clm.py
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, Union
+
+from typing_extensions import Self
+
+
+if TYPE_CHECKING:
+    import torch
 
 
 @dataclass
@@ -15,7 +38,16 @@ class ModelArguments:
     )
     adapter_name_or_path: Optional[str] = field(
         default=None,
-        metadata={"help": "Path to the adapter weight or identifier from huggingface.co/models."},
+        metadata={
+            "help": (
+                "Path to the adapter weight or identifier from huggingface.co/models. "
+                "Use commas to separate multiple adapters."
+            )
+        },
+    )
+    adapter_folder: Optional[str] = field(
+        default=None,
+        metadata={"help": "The folder containing the adapter weights to load."},
     )
     cache_dir: Optional[str] = field(
         default=None,
@@ -35,7 +67,7 @@ class ModelArguments:
     )
     new_special_tokens: Optional[str] = field(
         default=None,
-        metadata={"help": "Special tokens to be added into the tokenizer."},
+        metadata={"help": "Special tokens to be added into the tokenizer. Use commas to separate multiple tokens."},
     )
     model_revision: str = field(
         default="main",
@@ -44,6 +76,10 @@ class ModelArguments:
     low_cpu_mem_usage: bool = field(
         default=True,
         metadata={"help": "Whether or not to use memory-efficient model loading."},
+    )
+    quantization_method: Literal["bitsandbytes", "hqq", "eetq"] = field(
+        default="bitsandbytes",
+        metadata={"help": "Quantization method to use for on-the-fly quantization."},
     )
     quantization_bit: Optional[int] = field(
         default=None,
@@ -65,7 +101,7 @@ class ModelArguments:
         default=None,
         metadata={"help": "Which scaling strategy should be adopted for the RoPE embeddings."},
     )
-    flash_attn: Literal["off", "sdpa", "fa2", "auto"] = field(
+    flash_attn: Literal["auto", "disabled", "sdpa", "fa2"] = field(
         default="auto",
         metadata={"help": "Enable FlashAttention for faster training and inference."},
     )
@@ -101,13 +137,17 @@ class ModelArguments:
         default=False,
         metadata={"help": "Whether or not to upcast the output of lm_head in fp32."},
     )
+    train_from_scratch: bool = field(
+        default=False,
+        metadata={"help": "Whether or not to randomly initialize the model weights."},
+    )
     infer_backend: Literal["huggingface", "vllm"] = field(
         default="huggingface",
         metadata={"help": "Backend engine used at inference."},
     )
     vllm_maxlen: int = field(
         default=2048,
-        metadata={"help": "Maximum input length of the vLLM engine."},
+        metadata={"help": "Maximum sequence (prompt + response) length of the vLLM engine."},
     )
     vllm_gpu_util: float = field(
         default=0.9,
@@ -118,7 +158,7 @@ class ModelArguments:
         metadata={"help": "Whether or not to disable CUDA graph in the vLLM engine."},
     )
     vllm_max_lora_rank: int = field(
-        default=8,
+        default=32,
         metadata={"help": "Maximum rank of all LoRAs in the vLLM engine."},
     )
     offload_folder: str = field(
@@ -128,6 +168,10 @@ class ModelArguments:
     use_cache: bool = field(
         default=True,
         metadata={"help": "Whether or not to use KV cache in generation."},
+    )
+    infer_dtype: Literal["auto", "float16", "bfloat16", "float32"] = field(     # YAO: 20240807新增infer_dtype，可明确指定推理时模型dtype！
+        default="auto",
+        metadata={"help": "Data type for model weights and activations at inference."},
     )
     hf_hub_token: Optional[str] = field(
         default=None,
@@ -145,9 +189,9 @@ class ModelArguments:
         default=1,
         metadata={"help": "The file shard size (in GB) of the exported model."},
     )
-    export_device: Literal["cpu", "cuda"] = field(
+    export_device: Literal["cpu", "auto"] = field(
         default="cpu",
-        metadata={"help": "The device used in model export, use cuda to avoid addmm errors."},
+        metadata={"help": "The device used in model export, use `auto` to accelerate exporting."},
     )
     export_quantization_bit: Optional[int] = field(
         default=None,
@@ -179,9 +223,10 @@ class ModelArguments:
     )
 
     def __post_init__(self):
-        self.compute_dtype = None               # YAO: TODO 设置为None ???
-        self.device_map = None
-        self.model_max_length = None
+        self.compute_dtype: Optional["torch.dtype"] = None      # YAO: TODO 设置为None ???
+        self.device_map: Optional[Union[str, Dict[str, Any]]] = None
+        self.model_max_length: Optional[int] = None
+        self.block_diag_attn: bool = False
 
         if self.split_special_tokens and self.use_fast_tokenizer:
             raise ValueError("`split_special_tokens` is only supported for slow tokenizers.")
@@ -195,11 +240,19 @@ class ModelArguments:
         if self.new_special_tokens is not None:  # support multiple special tokens
             self.new_special_tokens = [token.strip() for token in self.new_special_tokens.split(",")]
 
-        assert self.quantization_bit in [None, 8, 4], "We only accept 4-bit or 8-bit quantization."
-        assert self.export_quantization_bit in [None, 8, 4, 3, 2], "We only accept 2/3/4/8-bit quantization."
-
         if self.export_quantization_bit is not None and self.export_quantization_dataset is None:
             raise ValueError("Quantization dataset is necessary for exporting.")
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+    @classmethod
+    def copyfrom(cls, old_arg: Self, **kwargs) -> Self:
+        arg_dict = old_arg.to_dict()
+        arg_dict.update(**kwargs)
+        new_arg = cls(**arg_dict)
+        new_arg.compute_dtype = old_arg.compute_dtype
+        new_arg.device_map = old_arg.device_map
+        new_arg.model_max_length = old_arg.model_max_length
+        new_arg.block_diag_attn = old_arg.block_diag_attn
+        return new_arg

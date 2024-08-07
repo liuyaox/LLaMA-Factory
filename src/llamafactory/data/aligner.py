@@ -1,3 +1,17 @@
+# Copyright 2024 the LlamaFactory team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 from functools import partial
 from typing import TYPE_CHECKING, Any, Dict, List, Union
@@ -5,11 +19,12 @@ from typing import TYPE_CHECKING, Any, Dict, List, Union
 from datasets import Features
 
 from ..extras.logging import get_logger
-from .utils import Role
+from .data_utils import Role
 
 
 if TYPE_CHECKING:
     from datasets import Dataset, IterableDataset
+    from transformers import Seq2SeqTrainingArguments
 
     from ..hparams import DataArguments
     from .parser import DatasetAttr
@@ -109,14 +124,14 @@ def convert_sharegpt(
     for i, messages in enumerate(examples[dataset_attr.messages]):  # YAO: 遍历batch，取每个样本的conversations(messages)
         # YAO：system内容优先级：conversations中第1个对话(若有) > system字段 > 空字符串(随后会被替换为模板中指定的default_system，详见template.py的_encode方法)
         # YAO: 首先若存在system角色且conversations中第1个对话来自system角色，则system内容取自第1个对话
+        if len(messages) == 0:
+            continue
+
         if dataset_attr.system_tag and messages[0][dataset_attr.role_tag] == dataset_attr.system_tag:
             system = messages[0][dataset_attr.content_tag]
             messages = messages[1:]
         else:   # YAO: 其次system内容取自system字段
             system = examples[dataset_attr.system][i] if dataset_attr.system else ""
-
-        if len(messages) == 0:
-            continue
 
         aligned_messages = []
         broken_data = False
@@ -179,7 +194,10 @@ def convert_sharegpt(
 
 
 def align_dataset(
-    dataset: Union["Dataset", "IterableDataset"], dataset_attr: "DatasetAttr", data_args: "DataArguments"
+    dataset: Union["Dataset", "IterableDataset"],
+    dataset_attr: "DatasetAttr",
+    data_args: "DataArguments",
+    training_args: "Seq2SeqTrainingArguments",
 ) -> Union["Dataset", "IterableDataset"]:
     r"""
     Aligned dataset:
@@ -212,7 +230,7 @@ def align_dataset(
     if not data_args.streaming:
         kwargs = dict(
             num_proc=data_args.preprocessing_num_workers,
-            load_from_cache_file=(not data_args.overwrite_cache),
+            load_from_cache_file=(not data_args.overwrite_cache) or (training_args.local_process_index != 0),
             desc="Converting format of dataset",
         )
 
