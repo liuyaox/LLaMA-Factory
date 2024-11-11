@@ -80,7 +80,7 @@ def create_app(chat_model: "ChatModel") -> "FastAPI":
     )
     async def list_models():
         model_card = ModelCard(id="gpt-3.5-turbo")      # YAO 模型名默认写死了，是gpt-3.5-turbo
-        return ModelList(data=[model_card])
+        return ModelList(data=[model_card])             # YAO: 写死了，只支持1个模型？
 
     @app.post(
         "/v1/chat/completions",

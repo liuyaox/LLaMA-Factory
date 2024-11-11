@@ -92,7 +92,7 @@ def prepare_model_for_training(model: "PreTrainedModel", model_args: "ModelArgum
             if param.ndim == 1 and any(ln_name in name for ln_name in LAYERNORM_NAMES):
                 param.data = param.data.to(torch.float32)
 
-    # YAO: Gradient(or Activation) checkpointing   默认有?
+    # YAO: Gradient(or Activation) checkpointing   默认True
     if not model_args.disable_gradient_checkpointing:
         if not getattr(model, "supports_gradient_checkpointing", False):
             logger.warning("Current model does not support gradient checkpointing.")

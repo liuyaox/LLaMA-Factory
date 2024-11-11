@@ -1,30 +1,25 @@
 #!/bin/bash
 set -ex
 
-pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
-pip config set install.trusted-host mirrors.aliyun.com
-pip install trl==0.8.6
-pip install peft==0.10.0
-pip install transformers==4.40.0    # 支持llama3
-
-export DEPT_HOME=/maindata/data/shared/ai_story_workspace
+source /root/miniconda3/bin/activate lylf
+#export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5
+export DEPT_HOME=/mnt/data
 export LY_HOME=$DEPT_HOME/yao.liu
-export RUN_ROOT=$LY_HOME/english/normal
+export RUN_ROOT=$LY_HOME/english/sfw
 
 
 # -----------配置修改区------------
-MODEL_PATH=/maindata/data/shared/public/ai_story/nlp_models/meta-llama/Meta-Llama-3-8B-Instruct
+MODEL_PATH=/mnt/data/nlp_models/meta-llama/Meta-Llama-3-8B-Instruct
 RUN_GROUP=Llama-3-8B-Instruct_SFT
-TEMPLATE="llama3"
+TEMPLATE="empty"
 
-DATASET="en_synthetic_v3_2_sfw,en_synthetic_v3_2_nsfw,en_synthetic_v3_2_normal"
-TOTAL_SAMPLES=5569
-V='v1_0'
-TAG="synthetic_v3_2_all"
+DATASET="en_sfw_synthetic_v3_2_sfw_200_expanded,en_nsfw_15_1_expanded"
+V='v3_0'
+TAG="both_151_synthetic_v3_2_expanded"
 
-VAL_RATIO=0.05
-EVAL_STEPS=4
-LR=5e-5
+VAL_RATIO=0.1
+EVAL_STEPS=30
+LR=5e-6
 EPOCHS=4
 # -------------------------------
 
@@ -33,15 +28,8 @@ NUM_MACHINES=1
 NUM_PROCESSES=8
 SEQ_LEN=4096
 PER_DEVICE_TRAIN_BATCH_SIZE=4
-GRADIENT_ACCUMULATION_STEPS=4
-GLOBAL_BATCH_SIZE=$((NUM_PROCESSES * PER_DEVICE_TRAIN_BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))  # 8 * 2 * 2 = 32
+GRADIENT_ACCUMULATION_STEPS=1
 GLOBAL_BATCH_SIZE_STR=${NUM_PROCESSES}x${PER_DEVICE_TRAIN_BATCH_SIZE}x${GRADIENT_ACCUMULATION_STEPS}
-
-TRAIN_SAMPLES_PER_EPOCH=$(echo "scale=0; $TOTAL_SAMPLES * (1 - $VAL_RATIO) / 1" | bc)   # 1个epoch的训练样本数 5569*0.95 = 5291
-TRAIN_ITERS_PER_EPOCH=$((TRAIN_SAMPLES_PER_EPOCH / GLOBAL_BATCH_SIZE))                  # 1个epoch的迭代次数  5291/16 = 331 的确是这样！
-#SAVE_STEPS=$((TRAIN_ITERS_PER_EPOCH / 1))    # 每个epoch保存1次   当只保存1次时，直接使用save_strategy=epoch吧
-#EVAL_STEPS=$((TRAIN_ITERS_PER_EPOCH / 20))    # 每个epoch评估20次
-
 
 RUN_NAME=${V}_${RUN_GROUP}_SEQ${SEQ_LEN}_LR${LR}_EP${EPOCHS}_GBS${GLOBAL_BATCH_SIZE_STR}_$(date +%Y%m%d)_${TAG}
 RUN_DIR=$RUN_ROOT/$RUN_NAME
@@ -55,7 +43,7 @@ cat $0 > $RUN_DIR/launch_script.sh
 export WANDB_API_KEY=c3e85199a4ec8fcf33fe2fcbcf55f4f7d3ea20e9
 wandb login --relogin $WANDB_API_KEY
 export WANDB_ENTITY=littlecatx
-export WANDB_PROJECT=linky_english_normal
+export WANDB_PROJECT=linky_english_sfw
 export WANDB_GROUP=$RUN_GROUP
 export WANDB_NAME=$RUN_NAME
 
@@ -86,11 +74,8 @@ use_cpu: false
 EOF
 
 
-
 cd $LY_HOME/fork/LLaMA-Factory
-accelerate launch --machine_rank ${RANK} \
-  --main_process_ip ${MASTER_ADDR} \
-  --main_process_port ${MASTER_PORT} \
+accelerate launch \
   --config_file ${ACC_CONFIG_FILE} \
   src/train.py \
   --model_name_or_path $MODEL_PATH \

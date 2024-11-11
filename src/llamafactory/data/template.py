@@ -102,7 +102,7 @@ class Template:
             elements = []
             # YAO: 每一轮对话(every turn, 偶数序号0,2,4等)前面，都要拼接东西！
             if i == 0:                  # YAO: 序号0句子前拼接的是prefix, system和tool这些
-                elements += self.format_prefix.apply()
+                elements += self.format_prefix.apply()      # YAO: format_prefix只用于system最前面！
                 if system or tools:
                     tool_text = self.format_tools.apply(content=tools)[0] if tools else ""
                     elements += self.format_system.apply(content=(system + tool_text))
@@ -545,22 +545,6 @@ _register_template(
     ),
     format_system=StringFormatter(slots=["<|START_OF_TURN_TOKEN|><|SYSTEM_TOKEN|>{{content}}<|END_OF_TURN_TOKEN|>"]),
     format_prefix=EmptyFormatter(slots=[{"bos_token"}]),
-)
-
-
-_register_template(     # 20240601 from daishijun  除了force_system=True和没有default_system外，其他完全同cohere模板
-    name="aya23",
-    format_user=StringFormatter(
-        slots=[
-            (
-                "<|START_OF_TURN_TOKEN|><|USER_TOKEN|>{{content}}<|END_OF_TURN_TOKEN|>"
-                "<|START_OF_TURN_TOKEN|><|CHATBOT_TOKEN|>"
-            )
-        ]
-    ),
-    format_system=StringFormatter(slots=[{"bos_token"}, "<|START_OF_TURN_TOKEN|><|SYSTEM_TOKEN|>{{content}}<|END_OF_TURN_TOKEN|>"]),
-    format_assistant=StringFormatter(slots=["{{content}}", {"eos_token"}]),     # YAO：默认就是这个
-    force_system=True,
 )
 
 

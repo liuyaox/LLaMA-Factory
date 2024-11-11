@@ -101,6 +101,7 @@ tpu_use_sudo: false
 use_cpu: false
 EOF
 
+
 cd $LY_HOME/fork/LLaMA-Factory
 accelerate launch --machine_rank ${RANK} \
   --main_process_ip ${MASTER_ADDR} \

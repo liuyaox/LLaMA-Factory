@@ -56,7 +56,7 @@ def _encode_supervised_example(
     encoded_pairs = template.encode_multiturn(tokenizer, messages, system, tools)
     total_length = 1 if template.efficient_eos else 0
     for turn_idx, (source_ids, target_ids) in enumerate(encoded_pairs):     # YAO：一轮一轮处理，然后拼接各轮对话，所以不用再提前手动拼接了！
-        if total_length >= cutoff_len:          # TODO 下次看到这里，要研究下cutoff_len的实际逻辑！！！
+        if total_length >= cutoff_len:          # YAO:一轮一轮拼接，一旦总长度超过cutoff_len，就不再拼接，保留已拼接的轮次，舍弃后续的轮次
             break
 
         source_len, target_len = infer_seqlen(len(source_ids), len(target_ids), cutoff_len - total_length)
@@ -80,7 +80,7 @@ def _encode_supervised_example(
         labels += source_label + target_label   # YAO：高效训练：所有prompt为IGNORED，只学response，label形如：<IGNORE><response1><IGNORE><response2>...
 
     if template.efficient_eos:
-        input_ids += [tokenizer.eos_token_id]   # YAO：之前encode_multiturn时没有添加eos，此处最后一轮，需要手动添加
+        input_ids += [tokenizer.eos_token_id]   # YAO：之前encode_multiturn时没有添加eos，此处最后一轮，需要手动添加eos
         labels += [tokenizer.eos_token_id]
 
     return input_ids, labels
@@ -94,7 +94,7 @@ def preprocess_supervised_dataset(
     data_args: "DataArguments",
 ) -> Dict[str, List[List[int]]]:
     # build inputs with format `<bos> X Y <eos>` and labels with format `<ignore> ... <ignore> Y <eos>`
-    # for multiturn examples, we only mask the prompt part in each prompt-response pair.
+    # for multiturn examples, we only mask the prompt part in each prompt-response pair. YAO:只处理1个样本，没做pad（交给Trainer来做）
     model_inputs = {"input_ids": [], "attention_mask": [], "labels": []}
     if processor is not None:
         model_inputs["pixel_values"] = []
@@ -102,7 +102,7 @@ def preprocess_supervised_dataset(
             model_inputs["token_type_ids"] = []
 
     for i in range(len(examples["prompt"])):
-        if len(examples["prompt"][i]) % 2 != 1 or len(examples["response"][i]) != 1:
+        if len(examples["prompt"][i]) % 2 != 1 or len(examples["response"][i]) != 1:    # YAO: TODO 奇数，跳过？
             logger.warning("Dropped invalid example: {}".format(examples["prompt"][i] + examples["response"][i]))
             continue
 
@@ -136,7 +136,7 @@ def preprocess_packed_supervised_dataset(
     data_args: "DataArguments",
 ) -> Dict[str, List[List[int]]]:
     # build inputs with format `<bos> X1 Y1 <eos> <bos> X2 Y2 <eos>`
-    # and labels with format `<ignore> ... <ignore> Y1 <eos> <ignore> ... <ignore> Y2 <eos>`
+    # and labels with format `<ignore> ... <ignore> Y1 <eos> <ignore> ... <ignore> Y2 <eos>`  YAO:packed式拼接多个样本，以及pad
     valid_num = 0
     batch_input_ids, batch_labels = [], []
     lengths = []
@@ -169,12 +169,12 @@ def preprocess_packed_supervised_dataset(
             valid_num += 1
 
     model_inputs = {"input_ids": [], "attention_mask": [], "labels": []}
-    knapsacks = greedy_knapsack(lengths, data_args.cutoff_len - 1)  # reserved for the padding token
+    knapsacks = greedy_knapsack(lengths, data_args.cutoff_len - 1)  # reserved for the padding token TODO YAO:用背包问题把数据分成几组？每组样本拼接在一起(详见https://github.com/hiyouga/LLaMA-Factory/pull/4009)
     for knapsack in knapsacks:
         packed_input_ids, packed_attention_masks, packed_labels = [], [], []
         for i, length in enumerate(knapsack):
             index = length2indexes[length].pop()
-            packed_input_ids += batch_input_ids[index]
+            packed_input_ids += batch_input_ids[index]      # YAO:同一组内各个样本（1个样本可以是1个多轮对话）也拼接在一起
             packed_labels += batch_labels[index]
             if data_args.neat_packing:
                 packed_attention_masks += [i + 1] * len(batch_input_ids[index])  # start from 1
@@ -183,7 +183,7 @@ def preprocess_packed_supervised_dataset(
 
         if len(packed_input_ids) < data_args.cutoff_len:
             pad_length = data_args.cutoff_len - len(packed_input_ids)
-            packed_input_ids += [tokenizer.pad_token_id] * pad_length
+            packed_input_ids += [tokenizer.pad_token_id] * pad_length   # YAO：同一组内所有样本拼接后，若还有剩余长度，最后再做pad，只做这一次
             packed_labels += [IGNORE_INDEX] * pad_length
             if data_args.neat_packing:
                 packed_attention_masks += [0] * pad_length

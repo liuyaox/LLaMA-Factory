@@ -802,5 +802,109 @@
       "response": "response",
       "history": "history"
     }
+  },
+  "en_sfw_online_erotic_1to1": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/sfw/online_erotic_模型婉拒_人工筛选1k_training_1to1.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "en_sfw_online_erotic_1to1_dedup565": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/sfw/online_erotic_模型婉拒_人工筛选_dedup565_training_1to1.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "en_sfw_online_erotic_1to1_500": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/sfw/online_erotic_模型婉拒_人工筛选1k_training_1to1_500.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "en_sfw_online_erotic_1to1_250": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/sfw/online_erotic_模型婉拒_人工筛选1k_training_1to1_250.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "en_sfw_online_erotic_20to1": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/sfw/online_erotic_模型婉拒_人工筛选1k_training_20to1.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "en_sfw_synthetic_v3_2_sfw_500": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/synthetic_v3_2/240815/synthetic_v3_2_sfw_training_500.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "en_sfw_synthetic_v3_2_sfw_200_expanded": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/synthetic_v3_2/240826/synthetic_v3_2_sfw_training_200_expanded.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "en_sfw_synthetic_v3_2_sfw_200_expanded_2": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/synthetic_v3_2/240815/synthetic_v3_2_sfw_training_200_expanded.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "en_nsfw_synthetic_v3_2_nsfw_300": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/synthetic_v3_2/240815/synthetic_v3_2_nsfw_training_300.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "en_nsfw_synthetic_v3_2_normal_300": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/synthetic_v3_2/240815/synthetic_v3_2_normal_training_300.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "en_nsfw_15_1": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/old/linky_manual_mem_v1.1_training.jsonl",
+    "columns": {
+      "system": "system",
+      "prompt": "prompt",
+      "response": "response",
+      "history": "history"
+    }
+  },
+  "en_nsfw_15_1_expanded": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/old/20240826/linky_manual_mem_v1.1_training_expanded.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "en_nsfw_15_1_expanded_2": {
+    "file_name": "/mnt/data/yao.liu/Dataset/SFT/english/old/20240815/linky_manual_mem_v1.1_training_expanded.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
   }
 }
