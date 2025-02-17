@@ -1,4 +1,4 @@
-# Copyright 2024 the LlamaFactory team.
+# Copyright 2025 the LlamaFactory team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from ...extras.constants import PEFT_METHODS
 from ...extras.misc import torch_gc
 from ...extras.packages import is_gradio_available
 from ...train.tuner import export_model
-from ..common import GPTQ_BITS, get_save_dir
+from ..common import get_save_dir, load_config
 from ..locales import ALERTS
 
 
@@ -30,6 +30,9 @@ if TYPE_CHECKING:
     from gradio.components import Component
 
     from ..engine import Engine
+
+
+GPTQ_BITS = ["8", "4", "3", "2"]
 
 
 def can_quantize(checkpoint_path: Union[str, List[str]]) -> "gr.Dropdown":
@@ -46,7 +49,6 @@ def save_model(
     finetuning_type: str,
     checkpoint_path: Union[str, List[str]],
     template: str,
-    visual_inputs: bool,
     export_size: int,
     export_quantization_bit: str,
     export_quantization_dataset: str,
@@ -55,6 +57,7 @@ def save_model(
     export_dir: str,
     export_hub_model_id: str,
 ) -> Generator[str, None, None]:
+    user_config = load_config()
     error = ""
     if not model_name:
         error = ALERTS["err_no_model"][lang]
@@ -76,9 +79,9 @@ def save_model(
 
     args = dict(
         model_name_or_path=model_path,
+        cache_dir=user_config.get("cache_dir", None),
         finetuning_type=finetuning_type,
         template=template,
-        visual_inputs=visual_inputs,
         export_dir=export_dir,
         export_hub_model_id=export_hub_model_id or None,
         export_size=export_size,
@@ -86,6 +89,7 @@ def save_model(
         export_quantization_dataset=export_quantization_dataset,
         export_device=export_device,
         export_legacy_format=export_legacy_format,
+        trust_remote_code=True,
     )
 
     if checkpoint_path:
@@ -129,7 +133,6 @@ def create_export_tab(engine: "Engine") -> Dict[str, "Component"]:
             engine.manager.get_elem_by_id("top.finetuning_type"),
             engine.manager.get_elem_by_id("top.checkpoint_path"),
             engine.manager.get_elem_by_id("top.template"),
-            engine.manager.get_elem_by_id("top.visual_inputs"),
             export_size,
             export_quantization_bit,
             export_quantization_dataset,
