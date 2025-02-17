@@ -906,5 +906,12 @@
       "prompt": "prompt",
       "response": "response"
     }
+  },
+  "event2shots_annotation_0212": {
+    "file_name": "/maindata/data/shared/public/yao.liu/Dataset/script_llm/event2shots/shot_annotation/train/event2shots_train.jsonl",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
   }
 }

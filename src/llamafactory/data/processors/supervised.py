@@ -136,7 +136,7 @@ def preprocess_packed_supervised_dataset(
     data_args: "DataArguments",
 ) -> Dict[str, List[List[int]]]:
     # build inputs with format `<bos> X1 Y1 <eos> <bos> X2 Y2 <eos>`
-    # and labels with format `<ignore> ... <ignore> Y1 <eos> <ignore> ... <ignore> Y2 <eos>`  YAO:packed式拼接多个样本，以及pad
+    # and labels with format `<ignore> ... <ignore> Y1 <eos> <ignore> ... <ignore> Y2 <eos>`  YAO: 拼接多个样本，以及pad
     valid_num = 0
     batch_input_ids, batch_labels = [], []
     lengths = []
@@ -169,17 +169,18 @@ def preprocess_packed_supervised_dataset(
             valid_num += 1
 
     model_inputs = {"input_ids": [], "attention_mask": [], "labels": []}
-    knapsacks = greedy_knapsack(lengths, data_args.cutoff_len - 1)  # reserved for the padding token TODO YAO:用背包问题把数据分成几组？每组样本拼接在一起(详见https://github.com/hiyouga/LLaMA-Factory/pull/4009)
+    # TODO YAO: 用背包问题把数据分成几组？每组样本拼接在一起(详见https://github.com/hiyouga/LLaMA-Factory/pull/4009)
+    knapsacks = greedy_knapsack(lengths, data_args.cutoff_len - 1)  # reserved for the padding token
     for knapsack in knapsacks:
         packed_input_ids, packed_attention_masks, packed_labels = [], [], []
         for i, length in enumerate(knapsack):
             index = length2indexes[length].pop()
-            packed_input_ids += batch_input_ids[index]      # YAO:同一组内各个样本（1个样本可以是1个多轮对话）也拼接在一起
+            packed_input_ids += batch_input_ids[index]      # YAO:同一组内各个样本（1个样本是1个多轮对话）拼接在一起
             packed_labels += batch_labels[index]
             if data_args.neat_packing:
-                packed_attention_masks += [i + 1] * len(batch_input_ids[index])  # start from 1
+                packed_attention_masks += [i + 1] * len(batch_input_ids[index])  # start from 1 YAO: 组内不同样本的mask互不相同，随后会用于消除样本之间的cross-attention
             else:
-                packed_attention_masks += [1] * len(batch_input_ids[index])
+                packed_attention_masks += [1] * len(batch_input_ids[index])     # YAO: packing只是样本拼接，样本间会有cross-attention，neat_packing才会消除cross-attention
 
         if len(packed_input_ids) < data_args.cutoff_len:
             pad_length = data_args.cutoff_len - len(packed_input_ids)
