@@ -146,13 +146,14 @@ def prepare_model_for_training(model: "PreTrainedModel", model_args: "ModelArgum
     (2) make output embedding layer require grads
     (3) add the upcasting of the lm_head in fp32.
     """
+    # YAO: 让LayerNorm层的参数精度变成fp32   默认没有(upcast_layernorm默认为False)
     if model_args.upcast_layernorm:
         logger.info_rank0("Upcasting layernorm weights in float32.")
         for name, param in model.named_parameters():
             if param.ndim == 1 and any(ln_name in name for ln_name in LAYERNORM_NAMES):
                 param.data = param.data.to(torch.float32)
 
-    if not model_args.disable_gradient_checkpointing:
+    if not model_args.disable_gradient_checkpointing:   # YAO: Gradient(or Activation) checkpointing   默认True
         if not getattr(model, "supports_gradient_checkpointing", False):
             logger.warning_rank0("Current model does not support gradient checkpointing.")
         else:
@@ -168,7 +169,7 @@ def prepare_model_for_training(model: "PreTrainedModel", model_args: "ModelArgum
             setattr(model.config, "use_cache", False)  # turn off when gradient checkpointing is enabled
             logger.info_rank0("Gradient checkpointing enabled.")
 
-    if model_args.upcast_lmhead_output:
+    if model_args.upcast_lmhead_output:     # YAO: Upcast lm_head to fp32  (TODO: 只要不是全参数训练，lm_head就需要为fp32吗？？)
         output_layer = model.get_output_embeddings()
         if isinstance(output_layer, torch.nn.Linear) and output_layer.weight.dtype != torch.float32:
             logger.info_rank0("Upcasting lm_head outputs in float32.")

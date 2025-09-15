@@ -56,14 +56,14 @@ _EVAL_CLS = tuple[ModelArguments, DataArguments, EvaluationArguments, Finetuning
 
 def read_args(args: Optional[Union[dict[str, Any], list[str]]] = None) -> Union[dict[str, Any], list[str]]:
     r"""Get arguments from the command line or a config file."""
-    if args is not None:
+    if args is not None:        # YAO: 要么返回直接传入的参数
         return args
 
-    if sys.argv[1].endswith(".yaml") or sys.argv[1].endswith(".yml"):
+    if sys.argv[1].endswith(".yaml") or sys.argv[1].endswith(".yml"):   # YAO: 要么读取yaml参数配置文件
         override_config = OmegaConf.from_cli(sys.argv[2:])
         dict_config = OmegaConf.load(Path(sys.argv[1]).absolute())
         return OmegaConf.to_container(OmegaConf.merge(dict_config, override_config))
-    elif sys.argv[1].endswith(".json"):
+    elif sys.argv[1].endswith(".json"):                                 # YAO: 要么读取json参数配置文件
         override_config = OmegaConf.from_cli(sys.argv[2:])
         dict_config = OmegaConf.load(Path(sys.argv[1]).absolute())
         return OmegaConf.to_container(OmegaConf.merge(dict_config, override_config))
@@ -400,7 +400,7 @@ def get_train_args(args: Optional[Union[dict[str, Any], list[str]]] = None) -> _
         )
 
     # Post-process model arguments
-    if training_args.bf16 or finetuning_args.pure_bf16:
+    if training_args.bf16 or finetuning_args.pure_bf16: # YAO：train时，会把training_args的bf16/fp16传递给model_args（继而传递给load_model的参数torch_dtype），infer时没这种处理(TODO 待验证？尤其是新增了参数infer_dtype)！
         model_args.compute_dtype = torch.bfloat16
     elif training_args.fp16:
         model_args.compute_dtype = torch.float16

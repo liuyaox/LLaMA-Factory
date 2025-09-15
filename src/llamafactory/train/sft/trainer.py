@@ -96,6 +96,17 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         create_custom_scheduler(self.args, num_training_steps, optimizer)
         return super().create_scheduler(num_training_steps, optimizer)
 
+    # YAO：TODO 20240807新版代码删除了_save方法，此处先保留，因为可以通过修改state_dict的数据类型，来保存模型
+    # def _save(self, output_dir: Optional[str] = None, state_dict: Optional[Dict[str, "torch.Tensor"]] = None) -> None:
+    #     # YAO TODO 此处可以转化state_dict的数据类型，比如fp32->fp16/bf16等！
+    #     # dtype = torch.bfloat16 if self.args.bf16 else (torch.float16 if self.args.fp16 else torch.float32)
+    #     # for k, v in state_dict.items():
+    #     #     state_dict[k] = v.to(dtype)
+    #     super()._save(output_dir, state_dict)
+    #     if self.processor is not None:
+    #         output_dir = output_dir if output_dir is not None else self.args.output_dir
+    #         getattr(self.processor, "image_processor").save_pretrained(output_dir)
+
     @override
     def _get_train_sampler(self, *args, **kwargs) -> Optional["torch.utils.data.Sampler"]:
         if self.finetuning_args.disable_shuffling:

@@ -85,6 +85,7 @@ class DatasetConverter:
 class AlpacaDatasetConverter(DatasetConverter):
     def __call__(self, example: dict[str, Any]) -> dict[str, Any]:
         prompt = []
+        # YAO：数据注册里，若有history字段，则依次取出每轮对话(注意1：每轮对话都是先user后assistant的二元列表；注意2：直接是对话内容，没有role,content等字段)
         if self.dataset_attr.history and isinstance(example[self.dataset_attr.history], list):
             for old_prompt, old_response in example[self.dataset_attr.history]:
                 prompt.append({"role": Role.USER.value, "content": old_prompt})
@@ -97,7 +98,7 @@ class AlpacaDatasetConverter(DatasetConverter):
         if self.dataset_attr.query and example[self.dataset_attr.query]:
             query.append(example[self.dataset_attr.query])
 
-        prompt.append({"role": Role.USER.value, "content": "\n".join(query)})  # "prompt\nquery"
+        prompt.append({"role": Role.USER.value, "content": "\n".join(query)})  # "prompt\nquery"    # YAO：数据注册里prompt(若有)和query(若有)通过\n拼接，共同当作user的输入
 
         if self.dataset_attr.kto_tag and isinstance(example[self.dataset_attr.kto_tag], bool):  # kto example
             response = [{"role": Role.ASSISTANT.value, "content": example[self.dataset_attr.response]}]
@@ -122,7 +123,7 @@ class AlpacaDatasetConverter(DatasetConverter):
         output = {
             "_prompt": prompt,
             "_response": response,
-            "_system": example[self.dataset_attr.system] if self.dataset_attr.system else "",
+            "_system": example[self.dataset_attr.system] if self.dataset_attr.system else "",   # YAO: TODO: 后续针对空字符串，有SharegptDatasetConverter中那样的优先级逻辑吗？
             "_tools": example[self.dataset_attr.tools] if self.dataset_attr.tools else "",
             "_images": self._find_medias(example[self.dataset_attr.images]) if self.dataset_attr.images else None,
             "_videos": self._find_medias(example[self.dataset_attr.videos]) if self.dataset_attr.videos else None,
@@ -141,24 +142,26 @@ class SharegptDatasetConverter(DatasetConverter):
             self.dataset_attr.function_tag: Role.FUNCTION.value,
             self.dataset_attr.system_tag: Role.SYSTEM.value,
         }
-        odd_tags = (self.dataset_attr.user_tag, self.dataset_attr.observation_tag)
-        even_tags = (self.dataset_attr.assistant_tag, self.dataset_attr.function_tag)
+        odd_tags = (self.dataset_attr.user_tag, self.dataset_attr.observation_tag)      # YAO：只能出现在奇数序号的role: user, observation
+        even_tags = (self.dataset_attr.assistant_tag, self.dataset_attr.function_tag)   # YAO：只能出现在偶数序号的role: assistant, function
         accept_tags = (odd_tags, even_tags)
         messages = example[self.dataset_attr.messages]
-        if (
+
+        # YAO：system内容优先级：conversations中第1个对话(若有) > system字段 > 空字符串(随后会被替换为模板中指定的default_system，详见template.py的_encode方法)
+        if (    # YAO: 首先若存在system角色且conversations中第1个是system角色，则system内容取自第1个对话
             self.dataset_attr.system_tag
             and len(messages) != 0
             and messages[0][self.dataset_attr.role_tag] == self.dataset_attr.system_tag
         ):
             system = messages[0][self.dataset_attr.content_tag]
             messages = messages[1:]
-        else:
+        else:   # YAO: 其次system内容取自system字段
             system = example[self.dataset_attr.system] if self.dataset_attr.system else ""
 
         aligned_messages = []
         broken_data = False
         for turn_idx, message in enumerate(messages):
-            if message[self.dataset_attr.role_tag] not in accept_tags[turn_idx % 2]:
+            if message[self.dataset_attr.role_tag] not in accept_tags[turn_idx % 2]:    # YAO：奇数、偶数序号允许的role，限定死了
                 logger.warning_rank0(f"Invalid role tag in {messages}.")
                 broken_data = True
                 break
@@ -211,7 +214,7 @@ class SharegptDatasetConverter(DatasetConverter):
                     "content": rejected[self.dataset_attr.content_tag],
                 },
             ]
-        else:  # normal example
+        else:  # normal example     YAO: prompt是列表，包括history对话和最后一轮request，response也是列表，但只有最后1轮response
             prompt = aligned_messages[:-1]
             response = aligned_messages[-1:]
 

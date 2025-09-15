@@ -45,9 +45,11 @@ def run_sft(
     generating_args: "GeneratingArguments",
     callbacks: Optional[list["TrainerCallback"]] = None,
 ):
+    # YAO: 加载config和Tokenizer，按需修改xx_args和Module后加载Model，初始化Adapter(full/freeze/lora)，以上是pt/sft/dpo(?)，若是rm/ppo，需要修改Model
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
     template = get_template_and_fix_tokenizer(tokenizer, data_args)
+    # YAO: 加载数据，规整数据字段(prompt, query, response, history, system)和格式
     dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
     model = load_model(tokenizer, model_args, finetuning_args, training_args.do_train)
 

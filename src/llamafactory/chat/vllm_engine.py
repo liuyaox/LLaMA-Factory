@@ -124,7 +124,7 @@ class VllmEngine(BaseEngine):
             messages, images or [], videos or [], audios or [], self.processor
         )
         paired_messages = messages + [{"role": "assistant", "content": ""}]
-        prompt_ids, _ = self.template.encode_oneturn(self.tokenizer, paired_messages, system, tools)
+        prompt_ids, _ = self.template.encode_oneturn(self.tokenizer, paired_messages, system, tools)    # YAO: 输入的template，在这里用于encode TODO 为什么不是多轮？
         prompt_length = len(prompt_ids)
 
         temperature: Optional[float] = input_kwargs.pop("temperature", None)

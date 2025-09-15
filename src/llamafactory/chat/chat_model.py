@@ -45,10 +45,14 @@ class ChatModel:
     Supports both sync and async methods.
     Sync methods: chat(), stream_chat() and get_scores().
     Async methods: achat(), astream_chat() and aget_scores().
+
+    # YAO（基于旧版，待验证）: 使用huggingface(默认)或vllm加载模型，然后进行chat, stream_chat和get_scores。
+    能够自动解析直接传入的参数或者读取参数文件，所以在自己的脚本import它后，在运行脚本时，也支持直接传入参数或者参数文件
+    ChatModel属于基础核心功能，结合CLI可做交互式聊天，结合FastAPI可用API来调用，结合Gradio可用WebUI来使用
     """
 
     def __init__(self, args: Optional[dict[str, Any]] = None) -> None:
-        model_args, data_args, finetuning_args, generating_args = get_infer_args(args)
+        model_args, data_args, finetuning_args, generating_args = get_infer_args(args)  # YAO: 要么解析直接传入的参数，要么读取yaml/json文件，详见src/llamafactory/hparams/parser.py中的read_args
         if model_args.infer_backend == EngineName.HF:
             self.engine: BaseEngine = HuggingfaceEngine(model_args, data_args, finetuning_args, generating_args)
         elif model_args.infer_backend == EngineName.VLLM:
@@ -155,7 +159,7 @@ def run_chat() -> None:
     messages = []
     print("Welcome to the CLI application, use `clear` to remove the history, use `exit` to exit the application.")
 
-    while True:
+    while True:         # YAO: 一个简单的聊天机器人的代码实现框架
         try:
             query = input("\nUser: ")
         except UnicodeDecodeError:
@@ -177,7 +181,7 @@ def run_chat() -> None:
         print("Assistant: ", end="", flush=True)
 
         response = ""
-        for new_text in chat_model.stream_chat(messages):
+        for new_text in chat_model.stream_chat(messages):   # YAO：CLI chat使用的是stream_chat
             print(new_text, end="", flush=True)
             response += new_text
         print()

@@ -72,15 +72,15 @@ class StringFormatter(Formatter):
     @override
     def apply(self, **kwargs) -> SLOTS:
         elements = []
-        for slot in self.slots:
-            if isinstance(slot, str):
+        for slot in self.slots:                 # YAO：示例：empty模板，format_system=StringFormatter(slots=[{"bos_token"}, "{{content}}"])
+            if isinstance(slot, str):           # YAO：若slot是str(比如"{{content}}")，则填充其中的placeholder(一般是{{content}})，然后添加到elements中
                 for name, value in kwargs.items():
                     if not isinstance(value, str):
                         raise RuntimeError(f"Expected a string, got {value}")
 
-                    slot = slot.replace("{{" + name + "}}", value, 1)
+                    slot = slot.replace("{{" + name + "}}", value, 1)   # YAO: 替换prompt中的{{content}}或{{idx}}，相当于旧版的{{system}},{{query}},{{idx}}等
                 elements.append(slot)
-            elif isinstance(slot, (dict, set)):
+            elif isinstance(slot, (dict, set)): # YAO：若slot是dict或set(比如{"token": "<reserved_102>"}或{"bos_token"})，则不做处理，直接添加到elements中
                 elements.append(slot)
             else:
                 raise RuntimeError(f"Input must be string, set[str] or dict[str, str], got {type(slot)}.")

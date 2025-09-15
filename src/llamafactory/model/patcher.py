@@ -97,9 +97,9 @@ def patch_config(
     is_trainable: bool,
 ) -> None:
     if model_args.compute_dtype is None:  # priority: bf16 > fp16 > fp32
-        if model_args.infer_dtype != "auto" and not is_trainable:
+        if model_args.infer_dtype != "auto" and not is_trainable:   # YAO: 20240807新增infer_dtype，可明确指定推理时模型dtype!
             model_args.compute_dtype = getattr(torch, model_args.infer_dtype)
-        else:
+        else:   # YAO: 若没指定infer_dtype，模型加载的torch_dtype逻辑：bf16(若模型config中指定的是bf16) > fp16 > fp32
             model_args.compute_dtype = infer_optim_dtype(model_dtype=getattr(config, "torch_dtype", None))
 
     configure_attn_implementation(config, model_args)
@@ -141,7 +141,7 @@ def patch_config(
 
     # do not cast data type of the model deepspeed zero3 without qlora
     if not (is_deepspeed_zero3_enabled() and model_args.quantization_bit is None):
-        init_kwargs["torch_dtype"] = model_args.compute_dtype
+        init_kwargs["torch_dtype"] = model_args.compute_dtype       # YAO: compute_dtype指的是load模型时的torch_dtype，既用于训练，也用于推理
 
         if init_kwargs["low_cpu_mem_usage"] and not is_fsdp_enabled():  # fsdp does not need device map
             if "device_map" not in init_kwargs and model_args.device_map:

@@ -90,8 +90,8 @@ def create_app(chat_model: "ChatModel") -> "FastAPI":
         dependencies=[Depends(verify_api_key)],
     )
     async def list_models():
-        model_card = ModelCard(id=os.getenv("API_MODEL_NAME", "gpt-3.5-turbo"))
-        return ModelList(data=[model_card])
+        model_card = ModelCard(id=os.getenv("API_MODEL_NAME", "gpt-3.5-turbo"))     # YAO: 要么读取环境变量，要么默认名gpt-3.5-turbo，没法传递模型名
+        return ModelList(data=[model_card])                                         # YAO: 写死了，只支持1个模型？
 
     @app.post(
         "/v1/chat/completions",

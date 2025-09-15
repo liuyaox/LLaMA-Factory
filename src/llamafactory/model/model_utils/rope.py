@@ -57,7 +57,7 @@ def configure_rope(config: "PretrainedConfig", model_args: "ModelArguments") -> 
                 "See: https://github.com/huggingface/transformers/pull/24653"
             )
 
-        rope_factor = float(math.ceil(model_args.model_max_length / old_max_length))
+        rope_factor = float(math.ceil(model_args.model_max_length / old_max_length))    # YAO: 若想要的最大长度 > 模型支持的最大长度，可以RoPE scaling
     else:  # inference
         rope_factor = 2.0
 

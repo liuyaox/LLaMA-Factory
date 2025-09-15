@@ -147,7 +147,7 @@ class BaseModelArguments:
         default=True,
         metadata={"help": "Whether or not to use KV cache in generation."},
     )
-    infer_dtype: Literal["auto", "float16", "bfloat16", "float32"] = field(
+    infer_dtype: Literal["auto", "float16", "bfloat16", "float32"] = field(     # YAO: 20240807新增infer_dtype，可明确指定推理时模型dtype！
         default="auto",
         metadata={"help": "Data type for model weights and activations at inference."},
     )
@@ -180,7 +180,7 @@ class BaseModelArguments:
             raise ValueError("`split_special_tokens` is only supported for slow tokenizers.")
 
         if self.adapter_name_or_path is not None:  # support merging multiple lora weights
-            self.adapter_name_or_path = [path.strip() for path in self.adapter_name_or_path.split(",")]
+            self.adapter_name_or_path = [path.strip() for path in self.adapter_name_or_path.split(",")]     # YAO: 支持多个lora checkpoints
 
         if self.add_tokens is not None:  # support multiple tokens
             self.add_tokens = [token.strip() for token in self.add_tokens.split(",")]

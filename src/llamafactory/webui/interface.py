@@ -71,7 +71,7 @@ def create_ui(demo_mode: bool = False) -> "gr.Blocks":
 
 
 def create_web_demo() -> "gr.Blocks":
-    engine = Engine(pure_chat=True)
+    engine = Engine(pure_chat=True)     # YAO：Engine <- WebChatModel <- ChatModel
     hostname = os.getenv("HOSTNAME", os.getenv("COMPUTERNAME", platform.node())).split(".")[0]
 
     with gr.Blocks(title=f"LLaMA Factory Web Demo ({hostname})", css=CSS) as demo:

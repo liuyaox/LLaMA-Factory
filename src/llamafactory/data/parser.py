@@ -91,7 +91,7 @@ class DatasetAttr:
 
 
 def get_dataset_list(dataset_names: Optional[list[str]], dataset_dir: Union[str, dict]) -> list["DatasetAttr"]:
-    r"""Get the attributes of the datasets."""
+    r"""Get the attributes of the datasets. # YAO：配置dataset_attr的各种参数，包括columns, tags等"""
     if dataset_names is None:
         dataset_names = []
 
@@ -114,7 +114,7 @@ def get_dataset_list(dataset_names: Optional[list[str]], dataset_dir: Union[str,
 
             dataset_info = None
 
-    dataset_list: list[DatasetAttr] = []
+    dataset_list: list[DatasetAttr] = []    # YAO：每个数据的元信息(待补充？)
     for name in dataset_names:
         if dataset_info is None:  # dataset_dir is ONLINE
             load_from = "ms_hub" if use_modelscope() else "om_hub" if use_openmind() else "hf_hub"
@@ -125,6 +125,7 @@ def get_dataset_list(dataset_names: Optional[list[str]], dataset_dir: Union[str,
         if name not in dataset_info:
             raise ValueError(f"Undefined dataset {name} in {DATA_CONFIG}.")
 
+        # YAO: 支持HF, ModelScope, script(可能也是HF上的数据，只不过需要额外处理下), 本地file等多种形式
         has_hf_url = "hf_hub_url" in dataset_info[name]
         has_ms_url = "ms_hub_url" in dataset_info[name]
         has_om_url = "om_hub_url" in dataset_info[name]

@@ -52,7 +52,7 @@ logger = logging.get_logger(__name__)
 def _training_function(config: dict[str, Any]) -> None:
     args = config.get("args")
     callbacks: list[Any] = config.get("callbacks")
-    model_args, data_args, training_args, finetuning_args, generating_args = get_train_args(args)
+    model_args, data_args, training_args, finetuning_args, generating_args = get_train_args(args)   # YAO：有些参数做了后处理
 
     callbacks.append(LogCallback())
     if finetuning_args.pissa_convert:
@@ -135,7 +135,7 @@ def export_model(args: Optional[dict[str, Any]] = None) -> None:
         setattr(model.config, "torch_dtype", torch.float16)
     else:
         if model_args.infer_dtype == "auto":
-            output_dtype = getattr(model.config, "torch_dtype", torch.float32)
+            output_dtype = getattr(model.config, "torch_dtype", torch.float32)  # YAO: 若auto，则优先使用config中的torch_dtype，若无则使用float32
             if output_dtype == torch.float32:  # if infer_dtype is auto, try using half precision first
                 output_dtype = infer_optim_dtype(torch.bfloat16)
         else:

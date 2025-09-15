@@ -241,7 +241,7 @@ class HuggingfaceEngine(BaseEngine):
         if isinstance(generate_output, tuple):
             generate_output = generate_output[1][0]  # post-process the minicpm_o output
 
-        response_ids = generate_output[:, prompt_length:]
+        response_ids = generate_output[:, prompt_length:]   # YAO: model.generate in transformers always appends the answer to the inputs
         response = tokenizer.batch_decode(
             response_ids,
             skip_special_tokens=getattr(gen_kwargs["generation_config"], "skip_special_tokens", True),

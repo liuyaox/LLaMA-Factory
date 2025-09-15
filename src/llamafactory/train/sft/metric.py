@@ -105,6 +105,7 @@ class ComputeSimilarity:
         self._dump()
 
     def __call__(self, eval_preds: "EvalPrediction", compute_result: bool = True) -> Optional[dict[str, float]]:
+        # YAO: 在这里可自定义关于预测结果的指标
         preds, labels = numpify(eval_preds.predictions), numpify(eval_preds.label_ids)
 
         preds = np.where(preds != IGNORE_INDEX, preds, self.tokenizer.pad_token_id)

@@ -38,17 +38,17 @@ class PretrainDatasetProcessor(DatasetProcessor):
             )
         else:
             tokenized_examples = self.tokenizer(text_examples, add_special_tokens=False)
-            concatenated_examples = {k: list(chain(*tokenized_examples[k])) for k in tokenized_examples.keys()}
+            concatenated_examples = {k: list(chain(*tokenized_examples[k])) for k in tokenized_examples.keys()}     # YAO：合并所有样本为整个预训练语料！不需要一条一条原始样本
             total_length = len(concatenated_examples[list(concatenated_examples.keys())[0]])
             block_size = self.data_args.cutoff_len
             total_length = (total_length // block_size) * block_size
             result = {
-                k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
+                k: [t[i : i + block_size] for i in range(0, total_length, block_size)]  # YAO: 整个预训练语料，切分为一个个chunks(长度为cutoff_len)
                 for k, t in concatenated_examples.items()
             }
             if getattr(self.tokenizer, "add_bos_token", False):
                 for i in range(len(result["input_ids"])):
-                    result["input_ids"][i][0] = self.tokenizer.bos_token_id
+                    result["input_ids"][i][0] = self.tokenizer.bos_token_id     # YAO: 每个chunk的第一个token替换为bos_token_id
 
         return result
 

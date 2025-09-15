@@ -63,6 +63,7 @@ class Template:
         tools: Optional[str] = None,
     ) -> tuple[list[int], list[int]]:
         r"""Return a single pair of token ids representing prompt and response respectively."""
+        # OLD: YAO: 用于preprocess_unsupervised_dataset, preprocess_pairwise_dataset
         encoded_messages = self._encode(tokenizer, messages, system, tools)
         prompt_ids = []
         for encoded_ids in encoded_messages[:-1]:
@@ -111,12 +112,12 @@ class Template:
         r"""Convert elements to token ids."""
         token_ids = []
         for elem in elements:
-            if isinstance(elem, str):
+            if isinstance(elem, str):           # YAO：str用于一般的常规文本，会直接encode为token_id
                 if len(elem) != 0:
                     token_ids += tokenizer.encode(elem, add_special_tokens=False)
-            elif isinstance(elem, dict):
+            elif isinstance(elem, dict):        # YAO：dict用于各家的保留token(比如baichuan的{"token": "<reserved_102>"})，convert为token_id
                 token_ids += [tokenizer.convert_tokens_to_ids(elem.get("token"))]
-            elif isinstance(elem, set):
+            elif isinstance(elem, set):         # YAO：set用于通用的保留token(一般就是bos_token和eos_token)，直接从tokenizer中取对应的token_id
                 if "bos_token" in elem and tokenizer.bos_token_id is not None:
                     token_ids += [tokenizer.bos_token_id]
                 elif "eos_token" in elem and tokenizer.eos_token_id is not None:
@@ -135,22 +136,25 @@ class Template:
     ) -> list[list[int]]:
         r"""Encode formatted inputs to pairs of token ids.
 
-        Turn 0: prefix + system + query        resp
+        Turn 0: prefix + system + query        resp     # 20240807比之前多了个prefix
         Turn t: query                          resp.
-        """
-        system = system or self.default_system
-        encoded_messages = []
-        for i, message in enumerate(messages):
-            elements = []
 
-            if i == 0:
-                elements += self.format_prefix.apply()
+        YAO: 填充模板，每句对话内部组装(拼接各种special token)，encode为token_id，最后划分为一轮一轮对话
+        """
+        system = system or self.default_system      # YAO: system优先级，详见data/converter.py中的SharegptDatasetConverter和AlpacaDatasetConverter
+        encoded_messages = []
+        for i, message in enumerate(messages):      # YAO: 粒度：message是一句对话，messages是一个对话session（自然对话，不含system prompt）
+            elements = []
+            # YAO: 每一轮对话(every turn, 偶数序号0,2,4等)前面，都要拼接东西！（TODO 来自旧版，好像错误，待验证）
+            if i == 0:          # YAO: 第1句对话，前面要拼接prefix, system和tool这些
+                elements += self.format_prefix.apply()      # YAO: format_prefix用且只用于system最前面！
                 if system or tools:
                     tool_text = self.format_tools.apply(content=tools)[0] if tools else ""
                     elements += self.format_system.apply(content=(system + tool_text))
 
+            # YAO: 填充chat template中的{{content}}，转换bos_token等通用和自家的特殊token，这样，一句对话就转化为1个token列表（随后被转化为token_id列表）
             if message["role"] == Role.USER:
-                elements += self.format_user.apply(content=message["content"], idx=str(i // 2))
+                elements += self.format_user.apply(content=message["content"], idx=str(i // 2))     # YAO: idx当前(250912)貌似只有chatglm2使用
             elif message["role"] == Role.ASSISTANT:
                 elements += self.format_assistant.apply(content=message["content"])
             elif message["role"] == Role.OBSERVATION:
@@ -183,19 +187,19 @@ class Template:
 
     def fix_special_tokens(self, tokenizer: "PreTrainedTokenizer") -> None:
         r"""Add eos token and pad token to the tokenizer."""
-        stop_words = self.stop_words
+        stop_words = self.stop_words    # YAO: stop_words作用：一作为eos_token(若有要求)；二作为special_token添加到vocab中
         if self.replace_eos:
             if not stop_words:
                 raise ValueError("Stop words are required to replace the EOS token.")
 
-            self._add_or_replace_eos_token(tokenizer, eos_token=stop_words[0])
+            self._add_or_replace_eos_token(tokenizer, eos_token=stop_words[0])  # YAO: 只取stop_words的第1个
             stop_words = stop_words[1:]
 
         if tokenizer.eos_token_id is None:
             self._add_or_replace_eos_token(tokenizer, eos_token="<|endoftext|>")
 
         if tokenizer.pad_token_id is None:
-            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token = tokenizer.eos_token   # YAO: 如果没pad_token，就用eos_token来当作pad_token
             logger.info_rank0(f"Add pad token: {tokenizer.pad_token}")
 
         if stop_words:
@@ -236,6 +240,7 @@ class Template:
 
     def _get_jinja_template(self, tokenizer: "PreTrainedTokenizer") -> str:
         r"""Return the jinja template."""
+        # YAO: 基于定义的format_system/user/assistant等，通过手动拼接，生成具有统一格式的jinja模板，虽不同于原始模板，但apply_chat_template的结果是一样的
         prefix = self._convert_slots_to_jinja(self.format_prefix.apply(), tokenizer)
         system = self._convert_slots_to_jinja(self.format_system.apply(), tokenizer, placeholder="system_message")
         user = self._convert_slots_to_jinja(self.format_user.apply(), tokenizer)
@@ -509,15 +514,15 @@ def register_template(
     default_tool_formatter = ToolFormatter(tool_format="default")
     default_prefix_formatter = EmptyFormatter()
     TEMPLATES[name] = template_class(
-        format_user=format_user or default_user_formatter,
-        format_assistant=format_assistant or default_assistant_formatter,
-        format_system=format_system or default_user_formatter,
+        format_user=format_user or default_user_formatter,                  # YAO: 若没指定，使用默认的(content)
+        format_assistant=format_assistant or default_assistant_formatter,   # YAO: 若没指定，使用默认的(content + eos)或者(content)（若efficient_eos）
+        format_system=format_system or default_user_formatter,              # YAO: 若没指定，使用默认的(即User的格式)
         format_function=format_function or default_function_formatter,
         format_observation=format_observation or format_user or default_user_formatter,
         format_tools=format_tools or default_tool_formatter,
         format_prefix=format_prefix or default_prefix_formatter,
         default_system=default_system,
-        stop_words=stop_words or [],
+        stop_words=stop_words or [],            # YAO: 若没指定，使用默认的(空列表)
         thought_words=thought_words or ("<think>\n", "\n</think>\n\n"),
         efficient_eos=efficient_eos,
         replace_eos=replace_eos,
@@ -620,6 +625,12 @@ def get_template_and_fix_tokenizer(tokenizer: "PreTrainedTokenizer", data_args: 
     template.fix_special_tokens(tokenizer)
     template.fix_jinja_template(tokenizer)
     return template
+
+
+# YAO: 以下chat template的共同特点：
+# user模板: [user_prefix]+[user_content]+[user_postfix]+[ai_prefix]，注意最后有个[ai_prefix]，又叫generation_prompt
+# assistant模板: 大多数模型是[ai_content]+[eos_token]+[separator]，separator用于分隔轮次（很多是换行或空字符串），少数模型[ai_content]前面有点东西，比如换行或空格
+# system模板: TODO 待补充
 
 
 register_template(

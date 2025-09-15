@@ -40,17 +40,18 @@ class SupervisedDatasetProcessor(DatasetProcessor):
         videos: list["VideoInput"],
         audios: list["AudioInput"],
     ) -> tuple[list[int], list[int]]:
+        # YAO: [旧版，待验证]prompt+response表示它俩组装为一个完整对话session  详见src/llamafactory/data/converter.py
         messages = self.template.mm_plugin.process_messages(prompt + response, images, videos, audios, self.processor)
         input_ids, labels = self.template.mm_plugin.process_token_ids(
             [], [], images, videos, audios, self.tokenizer, self.processor
         )
         encoded_pairs = self.template.encode_multiturn(self.tokenizer, messages, system, tools)
-        total_length = len(input_ids) + (1 if self.template.efficient_eos else 0)
+        total_length = len(input_ids) + (1 if self.template.efficient_eos else 0)   # YAO: 总长度要包含input_ids
         if self.data_args.mask_history:
             encoded_pairs = encoded_pairs[::-1]  # high priority for last turns
 
-        for turn_idx, (source_ids, target_ids) in enumerate(encoded_pairs):
-            if total_length >= self.data_args.cutoff_len:
+        for turn_idx, (source_ids, target_ids) in enumerate(encoded_pairs): # YAO：一轮一轮处理，然后拼接各轮对话，所以不用再提前手动拼接了！
+            if total_length >= self.data_args.cutoff_len:   # YAO:一轮一轮拼接，一旦总长度超过cutoff_len，就不再拼接，保留已拼接的轮次，舍弃后续的轮次
                 break
 
             source_len, target_len = infer_seqlen(
@@ -60,14 +61,14 @@ class SupervisedDatasetProcessor(DatasetProcessor):
             target_ids = target_ids[:target_len]
             total_length += source_len + target_len
 
-            if self.data_args.train_on_prompt:
+            if self.data_args.train_on_prompt:                      # YAO: train_on_prompt是说，训练时，既学prompt，也学response TODO 应用场景是？
                 source_label = source_ids
-            elif self.template.efficient_eos and turn_idx != 0:
+            elif self.template.efficient_eos and turn_idx != 0:     # YAO: 有意思！encode_multiturn时没有添加eos，此处手动添加eos，占用source第1个token位置！
                 source_label = [self.tokenizer.eos_token_id] + [IGNORE_INDEX] * (source_len - 1)
             else:
                 source_label = [IGNORE_INDEX] * source_len
 
-            if self.data_args.mask_history and turn_idx != 0:  # train on the last turn only
+            if self.data_args.mask_history and turn_idx != 0:  # train on the last turn only    # YAO: 只训练最后一轮response，再也不用手动拼接history了！
                 target_label = [IGNORE_INDEX] * target_len
             else:
                 target_label = target_ids
@@ -77,20 +78,20 @@ class SupervisedDatasetProcessor(DatasetProcessor):
                 labels = source_label + target_label + labels
             else:
                 input_ids += source_ids + target_ids
-                labels += source_label + target_label
+                labels += source_label + target_label   # YAO：高效训练：所有prompt为IGNORED(对应source_label)，只学response(对应target_label)，labels形如<IGNORE><response1><IGNORE><response2>...
 
         if self.template.efficient_eos:
-            input_ids += [self.tokenizer.eos_token_id]
+            input_ids += [self.tokenizer.eos_token_id]  # YAO：之前encode_multiturn时没有添加eos，此处最后一轮，需要手动添加eos
             labels += [self.tokenizer.eos_token_id]
 
         return input_ids, labels
 
     def preprocess_dataset(self, examples: dict[str, list[Any]]) -> dict[str, list[Any]]:
         # build inputs with format `<bos> X Y <eos>` and labels with format `<ignore> ... <ignore> Y <eos>`
-        # for multiturn examples, we only mask the prompt part in each prompt-response pair.
+        # for multiturn examples, we only mask the prompt part in each prompt-response pair.    YAO: (旧版，待验证)只处理1个样本，没做pad（交给Trainer来做）
         model_inputs = defaultdict(list)
         for i in range(len(examples["_prompt"])):
-            if len(examples["_prompt"][i]) % 2 != 1 or len(examples["_response"][i]) != 1:
+            if len(examples["_prompt"][i]) % 2 != 1 or len(examples["_response"][i]) != 1:  # YAO TODO:奇数，跳过？
                 logger.warning_rank0(
                     "Dropped invalid example: {}".format(examples["_prompt"][i] + examples["_response"][i])
                 )
@@ -127,7 +128,7 @@ class PackedSupervisedDatasetProcessor(SupervisedDatasetProcessor):
     def preprocess_dataset(self, examples: dict[str, list[Any]]) -> dict[str, list[Any]]:
         # TODO: use `position_ids` to achieve packing
         # build inputs with format `<bos> X1 Y1 <eos> <bos> X2 Y2 <eos>`
-        # and labels with format `<ignore> ... <ignore> Y1 <eos> <ignore> ... <ignore> Y2 <eos>`
+        # and labels with format `<ignore> ... <ignore> Y1 <eos> <ignore> ... <ignore> Y2 <eos>`    YAO: (旧版，待验证)拼接多个样本，以及pad
         valid_num = 0
         batch_input_ids, batch_labels, batch_images, batch_videos, batch_audios = [], [], [], [], []
         lengths = []
@@ -162,26 +163,27 @@ class PackedSupervisedDatasetProcessor(SupervisedDatasetProcessor):
                 valid_num += 1
 
         model_inputs = defaultdict(list)
+        # TODO YAO: 用背包问题把数据分成几组？每组样本拼接在一起(详见https://github.com/hiyouga/LLaMA-Factory/pull/4009)
         knapsacks = greedy_knapsack(lengths, self.data_args.cutoff_len)
         for knapsack in knapsacks:
             packed_input_ids, packed_attention_masks, packed_position_ids, packed_labels = [], [], [], []
             packed_images, packed_videos, packed_audios = [], [], []
             for i, length in enumerate(knapsack):
                 index = length2indexes[length].pop()
-                packed_input_ids += batch_input_ids[index]
+                packed_input_ids += batch_input_ids[index]      # YAO: 同一组内各个样本（1个样本是1个多轮对话）拼接在一起
                 packed_position_ids += list(range(len(batch_input_ids[index])))  # NOTE: pad_to_multiple_of ignore this
                 packed_labels += batch_labels[index]
                 packed_images += batch_images[index]
                 packed_videos += batch_videos[index]
                 packed_audios += batch_audios[index]
                 if self.data_args.neat_packing:
-                    packed_attention_masks += [i + 1] * len(batch_input_ids[index])  # start from 1
+                    packed_attention_masks += [i + 1] * len(batch_input_ids[index])  # start from 1  YAO: 组内不同样本的mask互不相同(并非固定值1，而是<i+1>)，随后用于消除样本之间的cross-attention
                 else:
-                    packed_attention_masks += [1] * len(batch_input_ids[index])
+                    packed_attention_masks += [1] * len(batch_input_ids[index])     # YAO: packing只是样本拼接，样本间会有cross-attention(所有样本的mask取固定值1)，neat_packing才会消除cross-attention
 
             if len(packed_input_ids) < self.data_args.cutoff_len + 1:  # avoid flash_attn drops attn mask
                 pad_length = self.data_args.cutoff_len - len(packed_input_ids) + 1
-                packed_input_ids += [self.tokenizer.pad_token_id] * pad_length
+                packed_input_ids += [self.tokenizer.pad_token_id] * pad_length      # YAO：同一组内所有样本拼接后，若还有剩余长度，最后再做pad，只做这一次
                 packed_position_ids += [0] * pad_length
                 packed_labels += [IGNORE_INDEX] * pad_length
                 if self.data_args.neat_packing:

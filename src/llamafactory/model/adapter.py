@@ -154,7 +154,7 @@ def _setup_lora_tuning(
 
     adapter_to_resume = None
 
-    if model_args.adapter_name_or_path is not None:
+    if model_args.adapter_name_or_path is not None:     # YAO TODO: 研究下Lora时checkpoint_dir是啥
         is_mergeable = True
         if getattr(model, "quantization_method", None):  # merge lora in quantized model is unstable
             assert len(model_args.adapter_name_or_path) == 1, "Quantized model only accepts a single adapter."
@@ -182,13 +182,14 @@ def _setup_lora_tuning(
             "token": model_args.hf_hub_token,
         }
 
-        for adapter in adapter_to_merge:
+        for adapter in adapter_to_merge:    # YAO: PeftModel依次加载model和adapter为model，以合并待合并的adapter?
             model: LoraModel = PeftModel.from_pretrained(model, adapter, **init_kwargs)
             model = model.merge_and_unload()
 
         if len(adapter_to_merge) > 0:
             logger.info_rank0(f"Merged {len(adapter_to_merge)} adapter(s).")
 
+        # YAO: adapter_to_resume单拎出来(OLD: 一是在PeftModel加载它时is_trainable=True，二是加载后不必model.merge_and_unload())
         if adapter_to_resume is not None:  # resume lora training
             if model_args.use_unsloth:
                 model = load_unsloth_peft_model(config, model_args, finetuning_args, is_trainable=is_trainable)
@@ -291,7 +292,7 @@ def init_adapter(
 
     Support full-parameter, freeze and LoRA training.
 
-    Note that the trainable parameters must be cast to float32.
+    Note that the trainable parameters must be cast to float32.   # YAO TODO: 为什么？
     """
     if is_trainable and getattr(model, "quantization_method", None) is not None:
         if finetuning_args.finetuning_type not in ["lora", "oft"]:
@@ -312,7 +313,7 @@ def init_adapter(
         logger.info_rank0("DeepSpeed ZeRO3 detected, remaining trainable params in float32.")
     else:
         logger.info_rank0("Upcasting trainable params to float32.")
-        cast_trainable_params_to_fp32 = True
+        cast_trainable_params_to_fp32 = True    # YAO TODO 为啥要转化为float32？
 
     if finetuning_args.finetuning_type == "full":
         _setup_full_tuning(model, finetuning_args, is_trainable, cast_trainable_params_to_fp32)
